@@ -5,7 +5,6 @@ import lombok.Getter;
 
 /**
  * 业务异常。
- * <p>
  * 业务校验失败时主动抛出,由 {@link GlobalExceptionHandler} 统一捕获并转换为标准响应。
  */
 @Getter

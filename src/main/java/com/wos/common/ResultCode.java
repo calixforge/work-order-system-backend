@@ -4,7 +4,6 @@ import lombok.Getter;
 
 /**
  * 业务状态码。
- * <p>
  * 写入响应体的 code 字段,与 HTTP 状态码相互独立。
  */
 @Getter
