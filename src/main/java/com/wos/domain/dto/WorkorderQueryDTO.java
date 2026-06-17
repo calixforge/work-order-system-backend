@@ -11,6 +11,10 @@ import lombok.Data;
 @Schema(description = "工单查询参数")
 public class WorkorderQueryDTO extends PageQuery {
 
+    /**
+     * 通用列表允许按状态筛选。
+     * 待审核/待派单这类固定语义接口会在 Service 层覆盖该值。
+     */
     @Schema(description = "状态，待审核、待派单接口可不传")
     private String status;
 

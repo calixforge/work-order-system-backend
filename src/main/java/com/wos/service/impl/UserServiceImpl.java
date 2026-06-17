@@ -23,12 +23,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Override
     public Result<String> login(String username, String password) {
 
+        // 登录名唯一,只按 username 查一条用户记录。
         User user = lambdaQuery().eq(User::getUsername, username).one();
 
+        // 登录失败统一提示,避免泄露“账号存在但密码错误”等细节。
         if(user == null || !PasswordUtil.matches(password, user.getPassword())){
             return Result.fail(ResultCode.UNAUTHORIZED, "账号或密码错误");
         }
 
+        // token 只保存 userId,角色/数据权限在业务接口中实时查询和校验。
         return Result.success(jwtUtil.createToken(user.getId()));
     }
 }

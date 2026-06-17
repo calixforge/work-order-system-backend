@@ -4,6 +4,7 @@ import lombok.Getter;
 
 /**
  * 工单流转事件,对应状态机的每条转换。
+ * 后续所有状态变更都应通过“事件”触发,避免前端直接传目标状态改库。
  */
 @Getter
 public enum WorkOrderEvent {

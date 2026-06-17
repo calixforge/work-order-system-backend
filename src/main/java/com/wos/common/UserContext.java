@@ -16,6 +16,10 @@ public class UserContext {
         return CURRENT_USER_ID.get();
     }
 
+    /**
+     * 清理当前线程中的用户信息。
+     * Web 容器线程会复用,不清理会造成用户串号风险。
+     */
     public static void clear() {
         CURRENT_USER_ID.remove();
     }

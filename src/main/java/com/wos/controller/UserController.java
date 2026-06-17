@@ -23,7 +23,10 @@ public class UserController {
 
     private final IUserService userService;
 
-
+    /**
+     * 登录成功后返回 JWT。
+     * 后续受保护接口通过请求头 Authorization: Bearer <token> 携带该 token。
+     */
     @Operation(summary = "登录")
     @PostMapping("/login")
     public Result<String> login(@Valid @RequestBody LoginDTO loginDTO) {

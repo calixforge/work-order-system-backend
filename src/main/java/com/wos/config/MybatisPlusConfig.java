@@ -13,7 +13,8 @@ import org.springframework.context.annotation.Configuration;
 public class MybatisPlusConfig {
 
     /**
-     * 分页插件
+     * 分页插件。
+     * 未注册该插件时,MyBatis-Plus 的 Page 参数不会自动拼接 limit。
      */
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {

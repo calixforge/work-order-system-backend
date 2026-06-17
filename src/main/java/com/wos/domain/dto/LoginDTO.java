@@ -5,6 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+/**
+ * 登录请求参数。
+ */
 @Data
 public class LoginDTO {
 

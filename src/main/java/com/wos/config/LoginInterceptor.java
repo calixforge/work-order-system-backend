@@ -22,14 +22,18 @@ public class LoginInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String token = request.getHeader("Authorization");
-        // 去掉 "Bearer "
+
+        // 前端按 Bearer Token 规范传递: Authorization: Bearer <token>。
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
+
         if (token == null || token.isBlank()) {
             throw new BusinessException(ResultCode.UNAUTHORIZED, "未登录");
         }
+
         try {
+            // 拦截器只负责认证并写入用户上下文;具体角色/数据权限交给 Service 层判断。
             Long userId = jwtUtil.parseToken(token);
             UserContext.setUserId(userId);
             return true;
@@ -40,7 +44,7 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-        // 请求结束清除 ThreadLocal,避免线程池复用时数据残留
+        // 请求结束必须清除 ThreadLocal,避免线程池复用时把上一个请求的 userId 带到下一个请求。
         UserContext.clear();
     }
 }

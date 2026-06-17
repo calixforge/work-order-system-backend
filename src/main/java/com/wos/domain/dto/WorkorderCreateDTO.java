@@ -8,6 +8,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * 创建工单请求参数。
+ * creatorId、departmentId、status 等字段由后端根据当前用户和 submit 决定,前端不能直接传。
+ */
 @Data
 public class WorkorderCreateDTO {
 
@@ -23,6 +27,9 @@ public class WorkorderCreateDTO {
     @Min(1) @Max(3)
     private Integer priority;
 
+    /**
+     * true: 创建后直接提交审核;false: 仅保存草稿。
+     */
     @Schema(description = "true=直接提交、false=存草稿")
     @NotNull(message = "请选择提交或草稿")
     private Boolean submit;
