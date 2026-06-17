@@ -22,6 +22,10 @@ public class LoginInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String token = request.getHeader("Authorization");
+        // 去掉 "Bearer "
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
         if (token == null || token.isBlank()) {
             throw new BusinessException(ResultCode.UNAUTHORIZED, "未登录");
         }

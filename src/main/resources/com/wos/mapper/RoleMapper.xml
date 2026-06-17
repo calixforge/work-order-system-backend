@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wos.mapper.RoleMapper">
+    <select id="selectCodesByUserId" resultType="java.lang.String">
+        select r.code from role r join user_role ur on r.id=ur.role_id where ur.user_id = #{userId} and r.is_del = 0
+    </select>
+</mapper>

@@ -76,11 +76,20 @@
             <version>4.5.0</version>
         </dependency>
 
+        <!-- 加密算法-->
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
+
+        <!-- 分页插件-->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>3.5.10</version>
+        </dependency>
     </dependencies>
+
 
     <build>
         <plugins>
