@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wos.common.Result;
 import com.wos.common.ResultCode;
 import com.wos.domain.pojo.User;
+import com.wos.exception.BusinessException;
 import com.wos.mapper.UserMapper;
 import com.wos.service.IUserService;
 import com.wos.util.JwtUtil;
@@ -28,7 +29,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         // 登录失败统一提示,避免泄露“账号存在但密码错误”等细节。
         if(user == null || !PasswordUtil.matches(password, user.getPassword())){
-            return Result.fail(ResultCode.UNAUTHORIZED, "账号或密码错误");
+            throw new BusinessException(ResultCode.UNAUTHORIZED, "账号或密码错误");
         }
 
         // token 只保存 userId,角色/数据权限在业务接口中实时查询和校验。

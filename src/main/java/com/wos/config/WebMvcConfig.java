@@ -22,7 +22,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         // 登录、注册无需 token
                         "/user/login",
-                        "/user/register",
+//                        "/user/register",
                         // Knife4j / OpenAPI 文档相关资源
                         "/doc.html",
                         "/webjars/**",

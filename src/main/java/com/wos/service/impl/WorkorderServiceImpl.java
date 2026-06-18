@@ -8,28 +8,27 @@ import com.wos.common.Result;
 import com.wos.common.ResultCode;
 import com.wos.common.UserContext;
 import com.wos.common.enums.Priority;
+import com.wos.common.enums.WorkOrderEvent;
 import com.wos.common.enums.WorkOrderStatus;
+import com.wos.domain.dto.RemarkDTO;
+import com.wos.domain.dto.TransitionDTO;
 import com.wos.domain.dto.WorkorderCreateDTO;
 import com.wos.domain.dto.WorkorderQueryDTO;
 import com.wos.domain.pojo.Department;
 import com.wos.domain.pojo.User;
 import com.wos.domain.pojo.Workorder;
+import com.wos.domain.pojo.WorkorderLog;
 import com.wos.domain.vo.WorkorderVO;
 import com.wos.exception.BusinessException;
 import com.wos.mapper.WorkorderMapper;
-import com.wos.service.IDepartmentService;
-import com.wos.service.IRoleService;
-import com.wos.service.IUserService;
-import com.wos.service.IWorkorderService;
+import com.wos.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -43,6 +42,32 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     private final IRoleService roleService;
 
     private final IDepartmentService departmentService;
+
+    private final IWorkorderLogService workorderLogService;
+
+    private static final Map<String, String> TRANSITIONS = new HashMap<>();
+
+    static {
+        // 提交
+        TRANSITIONS.put("DRAFT:SUBMIT", "PENDING_REVIEW");
+        // 审核
+        TRANSITIONS.put("PENDING_REVIEW:REVIEW_PASS", "PENDING_ASSIGN");
+        TRANSITIONS.put("PENDING_REVIEW:REVIEW_REJECT", "DRAFT");
+        // 派单
+        TRANSITIONS.put("PENDING_ASSIGN:ASSIGN", "ACCEPTED");
+        // 处理
+        TRANSITIONS.put("ACCEPTED:TRANSFER", "PENDING_ASSIGN");
+        TRANSITIONS.put("ACCEPTED:COMPLETE", "COMPLETED");
+        // 验收
+        TRANSITIONS.put("COMPLETED:ACCEPT", "CLOSED");
+        TRANSITIONS.put("COMPLETED:REJECT_REWORK", "ACCEPTED");
+        // 撤回：提单人在接单前发现内容有问题，撤回草稿后重新提交审核
+        TRANSITIONS.put("PENDING_REVIEW:WITHDRAW", "DRAFT");
+        TRANSITIONS.put("PENDING_ASSIGN:WITHDRAW", "DRAFT");
+        // 取消：接单前终止工单，进入终态
+        TRANSITIONS.put("PENDING_REVIEW:CANCEL", "CANCELED");
+        TRANSITIONS.put("PENDING_ASSIGN:CANCEL", "CANCELED");
+    }
 
     /**
      * 校验当前登录用户是否拥有指定角色。
@@ -183,7 +208,6 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         User user = userService.getById(UserContext.getUserId());
 
         // 待审核列表的业务语义固定为“查询待审核工单”。
-        // 因此前端即使传入 status,也不能改变该接口的查询状态,这里由后端强制覆盖。
         queryDTO.setStatus(WorkOrderStatus.PENDING_REVIEW.name());
 
         return pageQuery(queryDTO, q ->
@@ -195,9 +219,154 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         checkRole("DISPATCHER");
 
         // 待派单列表的业务语义固定为“查询待派单工单”。
-        // 前端传入的 status 在该接口中不生效,避免把“待派单列表”查成其他状态。
         queryDTO.setStatus(WorkOrderStatus.PENDING_ASSIGN.name());
 
         return pageQuery(queryDTO, q -> {});
+    }
+
+
+    /**
+     * 执行工单状态流转。
+     *
+     * 职责边界:
+     * 1. 根据“当前状态 + 事件”从 TRANSITIONS 中查找目标状态;
+     * 2. 查不到说明该状态下不能执行该事件,直接抛出业务异常;
+     * 3. 更新工单状态;
+     * 4. 记录一条工单流转日志。
+     */
+    private void transition(Workorder wo, WorkOrderEvent event, String remark){
+        String from = wo.getStatus();
+        String to = TRANSITIONS.get(from + ":" + event.name());
+        if (to == null) throw new BusinessException(ResultCode.CONFLICT, "当前状态不能执行该操作");
+
+        wo.setStatus(to);
+        WorkorderLog log = new WorkorderLog();
+        log.setWorkorderId(wo.getId());
+        log.setOperatorId(UserContext.getUserId());
+        log.setFromStatus(from);
+        log.setToStatus(to);
+        log.setEvent(event.name());
+        log.setRemark(remark);
+
+        //更新工单并保存日志
+        updateById(wo);
+        workorderLogService.save(log);
+    }
+
+    private void requireRemark(String remark) {
+        if (remark == null || remark.isBlank())
+            throw new BusinessException(ResultCode.BAD_REQUEST, "请填写原因");
+    }
+
+    private Workorder getWorkorderOrThrow(Long woId) {
+        Workorder wo = getById(woId);
+        if (wo == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "工单不存在");
+        }
+        return wo;
+    }
+
+    @Override
+    @Transactional
+    public Result<Void> workorderSubmit(Long woId) {
+
+        checkRole("SUBMITTER");
+
+        Workorder wo = getWorkorderOrThrow(woId);
+
+        if (!wo.getCreatorId().equals(UserContext.getUserId())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法提交");
+        }
+
+        transition(wo, WorkOrderEvent.SUBMIT, null);
+
+        return Result.success();
+    }
+
+    @Override
+    @Transactional
+    public Result<Void> workorderWithdraw(Long woId) {
+        checkRole("SUBMITTER");
+        Workorder wo = getWorkorderOrThrow(woId);
+
+        if (!wo.getCreatorId().equals(UserContext.getUserId())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法撤回");
+        }
+
+        transition(wo, WorkOrderEvent.WITHDRAW, null);
+
+        return Result.success();
+    }
+
+    @Override
+    @Transactional
+    public Result<Void> workorderCancel(Long woId, RemarkDTO dto) {
+
+        checkRole("SUBMITTER");
+        Workorder wo = getWorkorderOrThrow(woId);
+
+
+        if (!wo.getCreatorId().equals(UserContext.getUserId())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法取消");
+        }
+
+        transition(wo, WorkOrderEvent.CANCEL, dto.getRemark());
+
+        return Result.success();
+    }
+
+    @Override
+    @Transactional
+    public Result<Void> workorderReview(Long woId, TransitionDTO dto) {
+        checkRole("REVIEWER");
+        Workorder wo = getWorkorderOrThrow(woId);
+
+        User user = userService.getById(UserContext.getUserId());
+        if (user == null) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED, "用户不存在或登录已失效");
+        }
+        if (user.getDepartmentId() == null) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "未分配部门,无法审核");
+        }
+
+        if (!wo.getDepartmentId().equals(user.getDepartmentId())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于该部门，无法审核");
+        }
+
+        if (WorkOrderEvent.REVIEW_PASS.equals(dto.getEvent())){
+            transition(wo, WorkOrderEvent.REVIEW_PASS, null);
+        }
+        else if (WorkOrderEvent.REVIEW_REJECT.equals(dto.getEvent())){
+            requireRemark(dto.getRemark());
+            transition(wo, WorkOrderEvent.REVIEW_REJECT, dto.getRemark());
+        }else{
+            throw new BusinessException(ResultCode.BAD_REQUEST, "非法审核操作");
+        }
+
+
+        return Result.success();
+
+    }
+
+    @Override
+    @Transactional
+    public Result<Void> workorderAcceptance(Long woId, TransitionDTO dto) {
+        checkRole("SUBMITTER");
+
+        Workorder wo = getWorkorderOrThrow(woId);
+        if (!wo.getCreatorId().equals(UserContext.getUserId())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法验收");
+        }
+
+        if (WorkOrderEvent.ACCEPT.equals(dto.getEvent())) {
+            transition(wo, WorkOrderEvent.ACCEPT, null);
+        }else if (WorkOrderEvent.REJECT_REWORK.equals(dto.getEvent())){
+            requireRemark(dto.getRemark());
+            transition(wo, WorkOrderEvent.REJECT_REWORK, dto.getRemark());
+        }else{
+            throw new BusinessException(ResultCode.BAD_REQUEST, "非法验收操作");
+        }
+
+        return Result.success();
     }
 }

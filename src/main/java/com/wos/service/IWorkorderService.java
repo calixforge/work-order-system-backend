@@ -3,6 +3,8 @@ package com.wos.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wos.common.PageResult;
 import com.wos.common.Result;
+import com.wos.domain.dto.RemarkDTO;
+import com.wos.domain.dto.TransitionDTO;
 import com.wos.domain.dto.WorkorderCreateDTO;
 import com.wos.domain.dto.WorkorderQueryDTO;
 import com.wos.domain.pojo.Workorder;
@@ -24,4 +26,14 @@ public interface IWorkorderService extends IService<Workorder> {
     Result<PageResult<WorkorderVO>> workorderQueryReview(@Valid WorkorderQueryDTO queryDTO);
 
     Result<PageResult<WorkorderVO>> workorderQueryDispatch(@Valid WorkorderQueryDTO queryDTO);
+
+    Result<Void> workorderSubmit(Long woId);
+
+    Result<Void> workorderWithdraw(Long woId);
+
+    Result<Void> workorderCancel(Long woId, RemarkDTO dto);
+
+    Result<Void> workorderReview(Long woId, TransitionDTO dto);
+
+    Result<Void> workorderAcceptance(Long woId, @Valid TransitionDTO dto);
 }

@@ -17,7 +17,8 @@ public enum WorkOrderEvent {
     COMPLETE("标记完成"),
     ACCEPT("验收通过"),
     REJECT_REWORK("验收不通过"),
-    CANCEL("取消");
+    CANCEL("取消"),
+    WITHDRAW("撤回");
 
     private final String desc;
 
