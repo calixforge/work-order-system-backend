@@ -1,6 +1,7 @@
 package com.wos.controller;
 
 import com.wos.common.Result;
+import com.wos.domain.dto.AssignDTO;
 import com.wos.domain.dto.RemarkDTO;
 import com.wos.domain.dto.TransitionDTO;
 import com.wos.service.IWorkorderService;
@@ -77,4 +78,40 @@ public class WorkorderTransitionController {
 
         return workorderService.workorderAcceptance(woId, dto);
     }
+
+    /**
+     * 派单人派发工单。
+     * 指定接单人后,工单从 PENDING_ASSIGN 流转到 ACCEPTED。
+     */
+    @Operation(summary = "派发工单")
+    @PutMapping("/{woId}/assign")
+    public Result<Void> workorderAssign(@PathVariable Long woId,
+                                            @Valid @RequestBody AssignDTO dto) {
+
+        return workorderService.workorderAssign(woId, dto);
+    }
+
+    /**
+     * 接单人申请转派工单。
+     * 转派后清空当前接单人,工单退回待派单状态。
+     */
+    @Operation(summary = "转派工单")
+    @PutMapping("/{woId}/transfer")
+    public Result<Void> workorderTransfer(@PathVariable Long woId,
+                                        @Valid @RequestBody RemarkDTO dto) {
+
+        return workorderService.workorderTransfer(woId, dto);
+    }
+
+    /**
+     * 接单人标记工单完成。
+     * 工单从 ACCEPTED 流转到 COMPLETED,等待提单人验收。
+     */
+    @Operation(summary = "完成工单")
+    @PutMapping("/{woId}/complete")
+    public Result<Void> workorderComplete(@PathVariable Long woId) {
+
+        return workorderService.workorderComplete(woId);
+    }
+
 }

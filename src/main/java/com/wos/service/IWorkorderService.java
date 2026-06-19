@@ -3,17 +3,13 @@ package com.wos.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wos.common.PageResult;
 import com.wos.common.Result;
-import com.wos.domain.dto.RemarkDTO;
-import com.wos.domain.dto.TransitionDTO;
-import com.wos.domain.dto.WorkorderCreateDTO;
-import com.wos.domain.dto.WorkorderQueryDTO;
+import com.wos.domain.dto.*;
 import com.wos.domain.pojo.Workorder;
 import com.wos.domain.vo.WorkorderVO;
 import jakarta.validation.Valid;
 
 /**
  * 工单业务接口。
- * 第一版先覆盖创建和不同角色视角的列表查询,状态流转接口后续继续补。
  */
 public interface IWorkorderService extends IService<Workorder> {
 
@@ -36,4 +32,10 @@ public interface IWorkorderService extends IService<Workorder> {
     Result<Void> workorderReview(Long woId, TransitionDTO dto);
 
     Result<Void> workorderAcceptance(Long woId, @Valid TransitionDTO dto);
+
+    Result<Void> workorderAssign(Long woId, @Valid AssignDTO dto);
+
+    Result<Void> workorderTransfer(Long woId, @Valid RemarkDTO dto);
+
+    Result<Void> workorderComplete(Long woId);
 }

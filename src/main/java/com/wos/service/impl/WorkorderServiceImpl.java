@@ -8,12 +8,10 @@ import com.wos.common.Result;
 import com.wos.common.ResultCode;
 import com.wos.common.UserContext;
 import com.wos.common.enums.Priority;
+import com.wos.common.enums.RoleEnum;
 import com.wos.common.enums.WorkOrderEvent;
 import com.wos.common.enums.WorkOrderStatus;
-import com.wos.domain.dto.RemarkDTO;
-import com.wos.domain.dto.TransitionDTO;
-import com.wos.domain.dto.WorkorderCreateDTO;
-import com.wos.domain.dto.WorkorderQueryDTO;
+import com.wos.domain.dto.*;
 import com.wos.domain.pojo.Department;
 import com.wos.domain.pojo.User;
 import com.wos.domain.pojo.Workorder;
@@ -28,6 +26,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -75,9 +74,9 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
      * 当前阶段先在 Service 层做显式校验,后续如果多个模块都需要相同的角色判断,
      * 可以再抽成 PermissionService 或注解+AOP。
      */
-    private void checkRole(String roleCode) {
+    private void checkRole(RoleEnum role) {
         List<String> codes = roleService.selectCodesByUserId(UserContext.getUserId());
-        if (!codes.contains(roleCode)) {
+        if (!codes.contains(role.name())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "无权限");
         }
     }
@@ -85,7 +84,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Override
     public Result<Long> workorderCreate(WorkorderCreateDTO createDTO) {
 
-        checkRole("SUBMITTER");
+        checkRole(RoleEnum.SUBMITTER);
 
         Long userId = UserContext.getUserId();
         User user = userService.getById(userId);
@@ -190,22 +189,28 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     public Result<PageResult<WorkorderVO>> workorderQueryCreated(WorkorderQueryDTO queryDTO) {
-        checkRole("SUBMITTER");
+        checkRole(RoleEnum.SUBMITTER);
         return pageQuery(queryDTO, q ->
                 q.eq(Workorder::getCreatorId, UserContext.getUserId()));
     }
 
     @Override
     public Result<PageResult<WorkorderVO>> workorderQueryAssigned(WorkorderQueryDTO queryDTO) {
-        checkRole("HANDLER");
+        checkRole(RoleEnum.HANDLER);
         return pageQuery(queryDTO, q ->
                 q.eq(Workorder::getAssigneeId, UserContext.getUserId()));
     }
 
     @Override
     public Result<PageResult<WorkorderVO>> workorderQueryReview(WorkorderQueryDTO queryDTO) {
-        checkRole("REVIEWER");
+        checkRole(RoleEnum.REVIEWER);
         User user = userService.getById(UserContext.getUserId());
+        if (user == null) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED, "用户不存在或登录已失效");
+        }
+        if (user.getDepartmentId() == null) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "未分配部门,无法审核");
+        }
 
         // 待审核列表的业务语义固定为“查询待审核工单”。
         queryDTO.setStatus(WorkOrderStatus.PENDING_REVIEW.name());
@@ -216,7 +221,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     public Result<PageResult<WorkorderVO>> workorderQueryDispatch(WorkorderQueryDTO queryDTO) {
-        checkRole("DISPATCHER");
+        checkRole(RoleEnum.DISPATCHER);
 
         // 待派单列表的业务语义固定为“查询待派单工单”。
         queryDTO.setStatus(WorkOrderStatus.PENDING_ASSIGN.name());
@@ -270,7 +275,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Transactional
     public Result<Void> workorderSubmit(Long woId) {
 
-        checkRole("SUBMITTER");
+        checkRole(RoleEnum.SUBMITTER);
 
         Workorder wo = getWorkorderOrThrow(woId);
 
@@ -286,7 +291,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Override
     @Transactional
     public Result<Void> workorderWithdraw(Long woId) {
-        checkRole("SUBMITTER");
+        checkRole(RoleEnum.SUBMITTER);
         Workorder wo = getWorkorderOrThrow(woId);
 
         if (!wo.getCreatorId().equals(UserContext.getUserId())) {
@@ -302,7 +307,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Transactional
     public Result<Void> workorderCancel(Long woId, RemarkDTO dto) {
 
-        checkRole("SUBMITTER");
+        checkRole(RoleEnum.SUBMITTER);
         Workorder wo = getWorkorderOrThrow(woId);
 
 
@@ -318,7 +323,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Override
     @Transactional
     public Result<Void> workorderReview(Long woId, TransitionDTO dto) {
-        checkRole("REVIEWER");
+        checkRole(RoleEnum.REVIEWER);
         Workorder wo = getWorkorderOrThrow(woId);
 
         User user = userService.getById(UserContext.getUserId());
@@ -351,7 +356,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Override
     @Transactional
     public Result<Void> workorderAcceptance(Long woId, TransitionDTO dto) {
-        checkRole("SUBMITTER");
+        checkRole(RoleEnum.SUBMITTER);
 
         Workorder wo = getWorkorderOrThrow(woId);
         if (!wo.getCreatorId().equals(UserContext.getUserId())) {
@@ -369,4 +374,56 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
         return Result.success();
     }
+
+    @Override
+    @Transactional
+    public Result<Void> workorderAssign(Long woId, AssignDTO dto) {
+        checkRole(RoleEnum.DISPATCHER);
+        if (dto.getAssigneeId() == null) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "接单人不能为空");
+        }
+        List<String> list = roleService.selectCodesByUserId(dto.getAssigneeId());
+        if (!list.contains(RoleEnum.HANDLER.name())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "该用户不是接单人,无法派单");
+        }
+        Workorder wo = getWorkorderOrThrow(woId);
+
+        if (dto.getPriority() != null){
+            wo.setPriority(dto.getPriority());
+        }
+        wo.setAssigneeId(dto.getAssigneeId());
+
+        transition(wo, WorkOrderEvent.ASSIGN, null);
+
+        return Result.success();
+    }
+
+    @Override
+    @Transactional
+    public Result<Void> workorderTransfer(Long woId, RemarkDTO dto) {
+        checkRole(RoleEnum.HANDLER);
+        Workorder wo = getWorkorderOrThrow(woId);
+        if (!UserContext.getUserId().equals(wo.getAssigneeId())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法转派");
+        }
+        wo.setAssigneeId(null);
+        transition(wo, WorkOrderEvent.TRANSFER, dto.getRemark());
+
+        return Result.success();
+    }
+
+    @Override
+    @Transactional
+    public Result<Void> workorderComplete(Long woId) {
+        checkRole(RoleEnum.HANDLER);
+        Workorder wo = getWorkorderOrThrow(woId);
+        if (!UserContext.getUserId().equals(wo.getAssigneeId())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法完成");
+        }
+        wo.setCompleteTime(LocalDateTime.now());
+        transition(wo, WorkOrderEvent.COMPLETE, null);
+
+        return Result.success();
+    }
+
 }
