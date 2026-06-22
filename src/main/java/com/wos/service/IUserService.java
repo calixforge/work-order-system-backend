@@ -7,4 +7,6 @@ import com.wos.domain.pojo.User;
 public interface IUserService extends IService<User> {
 
     Result<String> login(String username, String password);
+
+    Result<Void> logout(String token);
 }

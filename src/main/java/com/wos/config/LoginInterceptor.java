@@ -7,8 +7,14 @@ import com.wos.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+import java.util.concurrent.TimeUnit;
+
+import static com.wos.common.RedisConstants.LOGIN_TOKEN_EXPIRE;
+import static com.wos.common.RedisConstants.LOGIN_TOKEN_KEY;
 
 /**
  * 登录拦截器:校验请求头中的 token,通过后将 userId 存入 {@link UserContext}。
@@ -18,6 +24,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class LoginInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
+
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
@@ -35,6 +43,12 @@ public class LoginInterceptor implements HandlerInterceptor {
         try {
             // 拦截器只负责认证并写入用户上下文;具体角色/数据权限交给 Service 层判断。
             Long userId = jwtUtil.parseToken(token);
+            String userIdStr = stringRedisTemplate.opsForValue().get(LOGIN_TOKEN_KEY + token);
+
+            if (userIdStr == null || !userIdStr.equals(String.valueOf(userId))) {
+                throw new BusinessException(ResultCode.UNAUTHORIZED, "登录已失效,请重新登录");
+            }
+            stringRedisTemplate.expire(LOGIN_TOKEN_KEY + token, LOGIN_TOKEN_EXPIRE, TimeUnit.MINUTES);
             UserContext.setUserId(userId);
             return true;
         } catch (Exception e) {
