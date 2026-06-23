@@ -3,10 +3,7 @@ package com.wos.service.impl;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.wos.common.PageResult;
-import com.wos.common.Result;
-import com.wos.common.ResultCode;
-import com.wos.common.UserContext;
+import com.wos.common.*;
 import com.wos.common.enums.Priority;
 import com.wos.common.enums.RoleEnum;
 import com.wos.common.enums.WorkOrderEvent;
@@ -33,8 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static com.wos.common.RedisConstants.DEPT_NAME_EXPIRE_HOURS;
-import static com.wos.common.RedisConstants.DEPT_NAME_KEY_PREFIX;
+import static com.wos.common.RedisConstants.*;
 
 @Slf4j
 @Service
@@ -50,6 +46,8 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     private final IWorkorderLogService workorderLogService;
 
     private final StringRedisTemplate stringRedisTemplate;
+
+    private final PermissionChecker permissionChecker;
 
     private static final Map<String, String> TRANSITIONS = new HashMap<>();
 
@@ -75,23 +73,10 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         TRANSITIONS.put("PENDING_ASSIGN:CANCEL", "CANCELED");
     }
 
-    /**
-     * 校验当前登录用户是否拥有指定角色。
-     *
-     * 当前阶段先在 Service 层做显式校验,后续如果多个模块都需要相同的角色判断,
-     * 可以再抽成 PermissionService 或注解+AOP。
-     */
-    private void checkRole(RoleEnum role) {
-        List<String> codes = roleService.selectCodesByUserId(UserContext.getUserId());
-        if (!codes.contains(role.name())) {
-            throw new BusinessException(ResultCode.FORBIDDEN, "无权限");
-        }
-    }
-
     @Override
     public Result<Long> workorderCreate(WorkorderCreateDTO createDTO) {
 
-        checkRole(RoleEnum.SUBMITTER);
+        permissionChecker.checkRole(RoleEnum.SUBMITTER);
 
         Long userId = UserContext.getUserId();
         User user = userService.getById(userId);
@@ -223,21 +208,21 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     public Result<PageResult<WorkorderVO>> workorderQueryCreated(WorkorderQueryDTO queryDTO) {
-        checkRole(RoleEnum.SUBMITTER);
+        permissionChecker.checkRole(RoleEnum.SUBMITTER);
         return pageQuery(queryDTO, q ->
                 q.eq(Workorder::getCreatorId, UserContext.getUserId()));
     }
 
     @Override
     public Result<PageResult<WorkorderVO>> workorderQueryAssigned(WorkorderQueryDTO queryDTO) {
-        checkRole(RoleEnum.HANDLER);
+        permissionChecker.checkRole(RoleEnum.HANDLER);
         return pageQuery(queryDTO, q ->
                 q.eq(Workorder::getAssigneeId, UserContext.getUserId()));
     }
 
     @Override
     public Result<PageResult<WorkorderVO>> workorderQueryReview(WorkorderQueryDTO queryDTO) {
-        checkRole(RoleEnum.REVIEWER);
+        permissionChecker.checkRole(RoleEnum.REVIEWER);
         User user = userService.getById(UserContext.getUserId());
         if (user == null) {
             throw new BusinessException(ResultCode.UNAUTHORIZED, "用户不存在或登录已失效");
@@ -255,7 +240,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     public Result<PageResult<WorkorderVO>> workorderQueryDispatch(WorkorderQueryDTO queryDTO) {
-        checkRole(RoleEnum.DISPATCHER);
+        permissionChecker.checkRole(RoleEnum.DISPATCHER);
 
         // 待派单列表的业务语义固定为“查询待派单工单”。
         queryDTO.setStatus(WorkOrderStatus.PENDING_ASSIGN.name());
@@ -309,7 +294,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Transactional
     public Result<Void> workorderSubmit(Long woId) {
 
-        checkRole(RoleEnum.SUBMITTER);
+        permissionChecker.checkRole(RoleEnum.SUBMITTER);
 
         Workorder wo = getWorkorderOrThrow(woId);
 
@@ -325,7 +310,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Override
     @Transactional
     public Result<Void> workorderWithdraw(Long woId) {
-        checkRole(RoleEnum.SUBMITTER);
+        permissionChecker.checkRole(RoleEnum.SUBMITTER);
         Workorder wo = getWorkorderOrThrow(woId);
 
         if (!wo.getCreatorId().equals(UserContext.getUserId())) {
@@ -341,7 +326,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Transactional
     public Result<Void> workorderCancel(Long woId, RemarkDTO dto) {
 
-        checkRole(RoleEnum.SUBMITTER);
+        permissionChecker.checkRole(RoleEnum.SUBMITTER);
         Workorder wo = getWorkorderOrThrow(woId);
 
 
@@ -357,7 +342,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Override
     @Transactional
     public Result<Void> workorderReview(Long woId, TransitionDTO dto) {
-        checkRole(RoleEnum.REVIEWER);
+        permissionChecker.checkRole(RoleEnum.REVIEWER);
         Workorder wo = getWorkorderOrThrow(woId);
 
         User user = userService.getById(UserContext.getUserId());
@@ -390,7 +375,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Override
     @Transactional
     public Result<Void> workorderAcceptance(Long woId, TransitionDTO dto) {
-        checkRole(RoleEnum.SUBMITTER);
+        permissionChecker.checkRole(RoleEnum.SUBMITTER);
 
         Workorder wo = getWorkorderOrThrow(woId);
         if (!wo.getCreatorId().equals(UserContext.getUserId())) {
@@ -412,7 +397,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Override
     @Transactional
     public Result<Void> workorderAssign(Long woId, AssignDTO dto) {
-        checkRole(RoleEnum.DISPATCHER);
+        permissionChecker.checkRole(RoleEnum.DISPATCHER);
         if (dto.getAssigneeId() == null) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "接单人不能为空");
         }
@@ -435,7 +420,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Override
     @Transactional
     public Result<Void> workorderTransfer(Long woId, RemarkDTO dto) {
-        checkRole(RoleEnum.HANDLER);
+        permissionChecker.checkRole(RoleEnum.HANDLER);
         Workorder wo = getWorkorderOrThrow(woId);
         if (!UserContext.getUserId().equals(wo.getAssigneeId())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法转派");
@@ -449,7 +434,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     @Override
     @Transactional
     public Result<Void> workorderComplete(Long woId) {
-        checkRole(RoleEnum.HANDLER);
+        permissionChecker.checkRole(RoleEnum.HANDLER);
         Workorder wo = getWorkorderOrThrow(woId);
         if (!UserContext.getUserId().equals(wo.getAssigneeId())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法完成");
