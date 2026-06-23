@@ -23,13 +23,18 @@ import com.wos.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import static com.wos.common.RedisConstants.DEPT_NAME_EXPIRE_HOURS;
+import static com.wos.common.RedisConstants.DEPT_NAME_KEY_PREFIX;
 
 @Slf4j
 @Service
@@ -43,6 +48,8 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     private final IDepartmentService departmentService;
 
     private final IWorkorderLogService workorderLogService;
+
+    private final StringRedisTemplate stringRedisTemplate;
 
     private static final Map<String, String> TRANSITIONS = new HashMap<>();
 
@@ -164,13 +171,40 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
             if (w.getDepartmentId() != null) deptIds.add(w.getDepartmentId());
         }
 
-        // 批量查名称并转成 id -> name 映射;空集合不查库。
         Map<Long, String> userNameMap = userIds.isEmpty() ? Map.of()
                 : userService.listByIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getRealName));
-        Map<Long, String> deptNameMap = deptIds.isEmpty() ? Map.of()
-                : departmentService.listByIds(deptIds).stream()
-                .collect(Collectors.toMap(Department::getId, Department::getName));
+
+        List<Long> deptIdList = new ArrayList<>(deptIds);
+
+        Map<Long, String> deptNameMap = new HashMap<>();
+        List<Long> missIds = new ArrayList<>();
+
+        // 先从 Redis 批量读取部门名称缓存,deptList 的顺序与 deptIdList 保持一致。
+        // multiGet 中未命中的 key 会返回 null,后续统一收集到 missIds 再查数据库。
+        if (!deptIdList.isEmpty()) {
+            List<String> deptList = stringRedisTemplate.opsForValue()
+                    .multiGet(deptIdList.stream().map(id -> DEPT_NAME_KEY_PREFIX + id).toList());
+
+            for (int i = 0; i < deptList.size(); i++) {
+                String name = deptList.get(i);
+                if (name != null) {
+                    deptNameMap.put(deptIdList.get(i), name);
+                } else {
+                    missIds.add(deptIdList.get(i));
+                }
+            }
+        }
+
+
+        // Redis 未命中的部门再批量查库,并回填部门名称缓存。
+        if (!missIds.isEmpty()) {
+            for (Department dept : departmentService.listByIds(missIds)) {
+                deptNameMap.put(dept.getId(), dept.getName());
+                stringRedisTemplate.opsForValue()
+                        .set(DEPT_NAME_KEY_PREFIX + dept.getId(), dept.getName(), DEPT_NAME_EXPIRE_HOURS, TimeUnit.HOURS);
+            }
+        }
 
         // 组装 VO: code/id 给前端做判断,desc/name 给前端直接展示。
         List<WorkorderVO> voList = records.stream().map(w -> {
