@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wos.mapper.UserMapper">
+    <select id="userHandlersList" resultType="com.wos.domain.vo.UserVO">
+        select
+            u.id,
+            u.username,
+            u.real_name as realName,
+            u.department_id as departmentId,
+            d.name as departmentName
+        from `user` u
+        join user_role ur on u.id = ur.user_id
+        join role r on ur.role_id = r.id
+        left join department d on u.department_id = d.id and d.is_del = 0
+        where u.is_del = 0
+          and r.is_del = 0
+          and r.code = 'HANDLER'
+        <if test="query.keyword != null and query.keyword != ''">
+            and (
+                u.username like concat('%', #{query.keyword}, '%')
+                or u.real_name like concat('%', #{query.keyword}, '%')
+            )
+        </if>
+        order by u.create_time desc
+    </select>
+</mapper>

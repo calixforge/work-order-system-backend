@@ -1,11 +1,14 @@
 package com.wos.service.impl;
 
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.wos.common.PageResult;
 import com.wos.common.PermissionChecker;
 import com.wos.common.Result;
 import com.wos.common.ResultCode;
 import com.wos.common.enums.RoleEnum;
+import com.wos.domain.dto.UserQueryDTO;
 import com.wos.domain.pojo.Department;
 import com.wos.domain.pojo.User;
 import com.wos.domain.vo.UserDetailVO;
@@ -23,7 +26,11 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.wos.common.RedisConstants.LOGIN_TOKEN_EXPIRE_MINUTES;
 import static com.wos.common.RedisConstants.LOGIN_TOKEN_KEY;
@@ -81,19 +88,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
     @Override
-    public Result<List<UserVO>> listUser() {
+    public Result<PageResult<UserVO>> userList(UserQueryDTO queryDTO) {
         permissionChecker.checkRole(RoleEnum.ADMIN);
 
-        List<User> list = list();
+        String keyword = queryDTO.getKeyword() == null ? null : queryDTO.getKeyword().trim();
+        Page<User> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
+        lambdaQuery()
+                .and(keyword != null && !keyword.isBlank(), q -> q
+                        .like(User::getUsername, keyword)
+                        .or()
+                        .like(User::getRealName, keyword))
+                .orderByDesc(User::getCreateTime)
+                .page(page);
 
-        List<UserVO> userVOS = list.stream().map((user) ->
+        List<User> users = page.getRecords();
+        Map<Long, String> departmentNameMap = getDepartmentNameMap(users);
+
+        List<UserVO> userVOS = users.stream().map((user) ->
         {
             UserVO vo = new UserVO();
-            BeanUtils.copyProperties(user, vo);
+            fillUserVO(user, vo, departmentNameMap);
             return vo;
         }).toList();
 
-        return Result.success(userVOS);
+        return Result.success(new PageResult<>(page.getTotal(), page.getPages(), userVOS));
     }
 
     @Override
@@ -105,12 +123,41 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             throw new BusinessException(ResultCode.NOT_FOUND, "用户不存在");
         }
 
-        Long departmentId = user.getDepartmentId();
-        Department department = departmentId == null ? null : departmentService.getById(departmentId);
         UserDetailVO vo = new UserDetailVO();
-        BeanUtils.copyProperties(user, vo);
-        vo.setDepartmentName(department == null ? null : department.getName());
+        fillUserVO(user, vo, getDepartmentNameMap(List.of(user)));
         vo.setRoles(roleService.selectRoleVOByUserId(userId));
         return Result.success(vo);
+    }
+
+    @Override
+    public Result<PageResult<UserVO>> userHandlersList(UserQueryDTO queryDTO) {
+        permissionChecker.checkRole(RoleEnum.DISPATCHER);
+
+        if (queryDTO.getKeyword() != null) {
+            queryDTO.setKeyword(queryDTO.getKeyword().trim());
+        }
+
+        Page<UserVO> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
+        Page<UserVO> resultPage = baseMapper.userHandlersList(page, queryDTO);
+        return Result.success(PageResult.of(resultPage));
+    }
+
+    private Map<Long, String> getDepartmentNameMap(List<User> users) {
+        Set<Long> departmentIds = users.stream()
+                .map(User::getDepartmentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (departmentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return departmentService.listByIds(departmentIds).stream()
+                .collect(Collectors.toMap(Department::getId, Department::getName));
+    }
+
+    private void fillUserVO(User user, UserVO vo, Map<Long, String> departmentNameMap) {
+        BeanUtils.copyProperties(user, vo);
+        vo.setDepartmentName(user.getDepartmentId() == null ? null : departmentNameMap.get(user.getDepartmentId()));
     }
 }

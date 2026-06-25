@@ -5,6 +5,8 @@ import com.wos.common.PageResult;
 import com.wos.common.Result;
 import com.wos.domain.dto.WorkorderCreateDTO;
 import com.wos.domain.dto.WorkorderQueryDTO;
+import com.wos.domain.dto.WorkorderUpdateDTO;
+import com.wos.domain.vo.WorkorderDetailVO;
 import com.wos.domain.vo.WorkorderVO;
 import com.wos.service.IWorkorderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -72,6 +74,32 @@ public class WorkorderController {
     public Result<PageResult<WorkorderVO>> workorderQueryDispatch(@Valid @ParameterObject WorkorderQueryDTO queryDTO) {
 
         return workorderService.workorderQueryDispatch(queryDTO);
+    }
+
+    @Operation(summary = "管理员查看全部工单列表")
+    @GetMapping("/list")
+    public Result<PageResult<WorkorderVO>> workorderList(@Valid @ParameterObject WorkorderQueryDTO queryDTO) {
+
+        return workorderService.workorderList(queryDTO);
+    }
+
+    @Operation(summary = "查询工单详情")
+    @GetMapping("/{woId}")
+    public Result<WorkorderDetailVO> getWorkorderDetail(@PathVariable Long woId) {
+        return workorderService.getWorkorderDetail(woId);
+    }
+
+    @Operation(summary = "编辑草稿工单")
+    @PutMapping("/{woId}")
+    public Result<Void> workorderUpdateDraft(@PathVariable Long woId,
+                                             @Valid @RequestBody WorkorderUpdateDTO dto) {
+        return workorderService.workorderUpdateDraft(woId, dto);
+    }
+
+    @Operation(summary = "删除草稿工单")
+    @DeleteMapping("/{woId}")
+    public Result<Void> workorderDeleteDraft(@PathVariable Long woId) {
+        return workorderService.workorderDeleteDraft(woId);
     }
 
 }

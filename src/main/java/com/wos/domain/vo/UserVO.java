@@ -17,4 +17,7 @@ public class UserVO {
 
     @Schema(description = "所属部门id")
     private Long departmentId;
+
+    @Schema(description = "所属部门名称")
+    private String departmentName;
 }

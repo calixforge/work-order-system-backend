@@ -13,6 +13,8 @@ import com.wos.domain.pojo.Department;
 import com.wos.domain.pojo.User;
 import com.wos.domain.pojo.Workorder;
 import com.wos.domain.pojo.WorkorderLog;
+import com.wos.domain.vo.WorkorderDetailVO;
+import com.wos.domain.vo.WorkorderLogVO;
 import com.wos.domain.vo.WorkorderVO;
 import com.wos.exception.BusinessException;
 import com.wos.mapper.WorkorderMapper;
@@ -156,31 +158,53 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
             if (w.getDepartmentId() != null) deptIds.add(w.getDepartmentId());
         }
 
-        Map<Long, String> userNameMap = userIds.isEmpty() ? Map.of()
-                : userService.listByIds(userIds).stream()
+        Map<Long, String> userNameMap = loadUserNameMap(userIds);
+        Map<Long, String> deptNameMap = loadDepartmentNameMap(deptIds);
+
+        // 组装 VO: code/id 给前端做判断,desc/name 给前端直接展示。
+        List<WorkorderVO> voList = records.stream().map(w -> {
+            WorkorderVO vo = new WorkorderVO();
+            fillWorkorderVO(w, vo, userNameMap, deptNameMap);
+            return vo;
+        }).collect(Collectors.toList());
+
+        return new PageResult<>(page.getTotal(), page.getPages(), voList);
+    }
+
+    private Map<Long, String> loadUserNameMap(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userService.listByIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getRealName));
+    }
+
+    private Map<Long, String> loadDepartmentNameMap(Collection<Long> deptIds) {
+        if (deptIds == null || deptIds.isEmpty()) {
+            return Map.of();
+        }
 
         List<Long> deptIdList = new ArrayList<>(deptIds);
-
         Map<Long, String> deptNameMap = new HashMap<>();
         List<Long> missIds = new ArrayList<>();
 
         // 先从 Redis 批量读取部门名称缓存,deptList 的顺序与 deptIdList 保持一致。
         // multiGet 中未命中的 key 会返回 null,后续统一收集到 missIds 再查数据库。
-        if (!deptIdList.isEmpty()) {
-            List<String> deptList = stringRedisTemplate.opsForValue()
-                    .multiGet(deptIdList.stream().map(id -> DEPT_NAME_KEY_PREFIX + id).toList());
+        List<String> deptList = stringRedisTemplate.opsForValue()
+                .multiGet(deptIdList.stream().map(id -> DEPT_NAME_KEY_PREFIX + id).toList());
 
-            for (int i = 0; i < deptList.size(); i++) {
-                String name = deptList.get(i);
-                if (name != null) {
-                    deptNameMap.put(deptIdList.get(i), name);
-                } else {
-                    missIds.add(deptIdList.get(i));
-                }
-            }
+        if (deptList == null) {
+            deptList = Collections.nCopies(deptIdList.size(), null);
         }
 
+        for (int i = 0; i < deptList.size(); i++) {
+            String name = deptList.get(i);
+            if (name != null) {
+                deptNameMap.put(deptIdList.get(i), name);
+            } else {
+                missIds.add(deptIdList.get(i));
+            }
+        }
 
         // Redis 未命中的部门再批量查库,并回填部门名称缓存。
         if (!missIds.isEmpty()) {
@@ -191,19 +215,18 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
             }
         }
 
-        // 组装 VO: code/id 给前端做判断,desc/name 给前端直接展示。
-        List<WorkorderVO> voList = records.stream().map(w -> {
-            WorkorderVO vo = new WorkorderVO();
-            BeanUtils.copyProperties(w, vo);
-            vo.setStatusDesc(WorkOrderStatus.descOf(w.getStatus()));
-            vo.setCreatorName(userNameMap.get(w.getCreatorId()));
-            vo.setAssigneeName(w.getAssigneeId() == null ? null : userNameMap.get(w.getAssigneeId()));
-            vo.setDepartmentName(deptNameMap.get(w.getDepartmentId()));
-            vo.setPriorityDesc(Priority.descOf(w.getPriority()));
-            return vo;
-        }).collect(Collectors.toList());
+        return deptNameMap;
+    }
 
-        return new PageResult<>(page.getTotal(), page.getPages(), voList);
+    private void fillWorkorderVO(Workorder workorder, WorkorderVO vo,
+                                 Map<Long, String> userNameMap,
+                                 Map<Long, String> deptNameMap) {
+        BeanUtils.copyProperties(workorder, vo);
+        vo.setStatusDesc(WorkOrderStatus.descOf(workorder.getStatus()));
+        vo.setCreatorName(userNameMap.get(workorder.getCreatorId()));
+        vo.setAssigneeName(workorder.getAssigneeId() == null ? null : userNameMap.get(workorder.getAssigneeId()));
+        vo.setDepartmentName(deptNameMap.get(workorder.getDepartmentId()));
+        vo.setPriorityDesc(Priority.descOf(workorder.getPriority()));
     }
 
     @Override
@@ -441,6 +464,128 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         }
         wo.setCompleteTime(LocalDateTime.now());
         transition(wo, WorkOrderEvent.COMPLETE, null);
+
+        return Result.success();
+    }
+
+    @Override
+    public Result<PageResult<WorkorderVO>> workorderList(WorkorderQueryDTO queryDTO) {
+        // 管理员查看所有工单:不限定数据范围(看全部),状态/优先级按前端传参自由筛选。
+        permissionChecker.checkRole(RoleEnum.ADMIN);
+        return pageQuery(queryDTO, q -> {});
+    }
+
+    @Override
+    public Result<WorkorderDetailVO> getWorkorderDetail(Long woId) {
+        Workorder workorder = getWorkorderOrThrow(woId);
+        checkWorkorderDetailPermission(workorder);
+
+        Set<Long> userIds = new HashSet<>();
+        userIds.add(workorder.getCreatorId());
+        if (workorder.getAssigneeId() != null) {
+            userIds.add(workorder.getAssigneeId());
+        }
+
+        Set<Long> deptIds = workorder.getDepartmentId() == null
+                ? Set.of()
+                : Set.of(workorder.getDepartmentId());
+
+        WorkorderDetailVO vo = new WorkorderDetailVO();
+        fillWorkorderVO(workorder, vo, loadUserNameMap(userIds), loadDepartmentNameMap(deptIds));
+        vo.setLogs(listWorkorderLogVO(woId));
+        return Result.success(vo);
+    }
+
+    private void checkWorkorderDetailPermission(Workorder workorder) {
+        Long userId = UserContext.getUserId();
+        List<String> codes = roleService.selectCodesByUserId(userId);
+
+        if (codes.contains(RoleEnum.ADMIN.name())) {
+            return;
+        }
+        if (codes.contains(RoleEnum.DISPATCHER.name())
+                && WorkOrderStatus.PENDING_ASSIGN.name().equals(workorder.getStatus())) {
+            return;
+        }
+        if (codes.contains(RoleEnum.SUBMITTER.name()) && userId.equals(workorder.getCreatorId())) {
+            return;
+        }
+        if (codes.contains(RoleEnum.HANDLER.name()) && userId.equals(workorder.getAssigneeId())) {
+            return;
+        }
+        if (codes.contains(RoleEnum.REVIEWER.name())) {
+            User user = userService.getById(userId);
+            if (user != null
+                    && user.getDepartmentId() != null
+                    && user.getDepartmentId().equals(workorder.getDepartmentId())) {
+                return;
+            }
+        }
+
+        throw new BusinessException(ResultCode.FORBIDDEN, "无权限查看该工单");
+    }
+
+    private List<WorkorderLogVO> listWorkorderLogVO(Long woId) {
+        List<WorkorderLog> logs = workorderLogService.lambdaQuery()
+                .eq(WorkorderLog::getWorkorderId, woId)
+                .orderByAsc(WorkorderLog::getCreateTime)
+                .list();
+
+        Set<Long> operatorIds = logs.stream()
+                .map(WorkorderLog::getOperatorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> operatorNameMap = loadUserNameMap(operatorIds);
+
+        return logs.stream().map(log -> {
+            WorkorderLogVO vo = new WorkorderLogVO();
+            BeanUtils.copyProperties(log, vo);
+            vo.setOperatorName(operatorNameMap.get(log.getOperatorId()));
+            vo.setFromStatusDesc(WorkOrderStatus.descOf(log.getFromStatus()));
+            vo.setToStatusDesc(WorkOrderStatus.descOf(log.getToStatus()));
+            vo.setEventDesc(WorkOrderEvent.descOf(log.getEvent()));
+            return vo;
+        }).toList();
+    }
+
+    @Override
+    public Result<Void> workorderUpdateDraft(Long woId, WorkorderUpdateDTO dto) {
+        permissionChecker.checkRole(RoleEnum.SUBMITTER);
+        Workorder wo = getWorkorderOrThrow(woId);
+
+        // 仅本人可编辑自己创建的工单。
+        if (!wo.getCreatorId().equals(UserContext.getUserId())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法编辑");
+        }
+        // 仅草稿可编辑:已进入流程的工单内容不允许直接改,只能走状态流转。
+        if (!WorkOrderStatus.DRAFT.name().equals(wo.getStatus())) {
+            throw new BusinessException(ResultCode.CONFLICT, "仅草稿状态可编辑");
+        }
+
+        wo.setTitle(dto.getTitle());
+        wo.setDescription(dto.getDescription());
+        wo.setPriority(dto.getPriority());
+        updateById(wo);
+
+        return Result.success();
+    }
+
+    @Override
+    public Result<Void> workorderDeleteDraft(Long woId) {
+        permissionChecker.checkRole(RoleEnum.SUBMITTER);
+        Workorder wo = getWorkorderOrThrow(woId);
+
+        // 仅本人可删除自己创建的工单。
+        if (!wo.getCreatorId().equals(UserContext.getUserId())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法删除");
+        }
+        // 仅草稿可删除:进入流程的工单要留痕,只能取消/撤回,不能直接删除。
+        if (!WorkOrderStatus.DRAFT.name().equals(wo.getStatus())) {
+            throw new BusinessException(ResultCode.CONFLICT, "仅草稿状态可删除");
+        }
+
+        // 执行逻辑删
+        removeById(woId);
 
         return Result.success();
     }

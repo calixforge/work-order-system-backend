@@ -25,4 +25,18 @@ public enum WorkOrderEvent {
     WorkOrderEvent(String desc) {
         this.desc = desc;
     }
+
+    /**
+     * 根据数据库中的事件 name 获取中文描述。
+     */
+    public static String descOf(String name) {
+        if (name == null) {
+            return null;
+        }
+        try {
+            return WorkOrderEvent.valueOf(name).getDesc();
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
 }

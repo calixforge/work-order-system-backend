@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 工单视图对象,用于列表/详情返回。
+ * 工单列表视图对象。
  * PO 只对应数据库字段;VO 额外补充状态中文、优先级中文、人员/部门名称,方便前端展示。
  */
 @Data
@@ -18,9 +18,6 @@ public class WorkorderVO {
 
     @Schema(description = "标题")
     private String title;
-
-    @Schema(description = "描述")
-    private String description;
 
     @Schema(description = "状态编码")
     private String status;

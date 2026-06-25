@@ -5,6 +5,7 @@ import com.wos.common.PageResult;
 import com.wos.common.Result;
 import com.wos.domain.dto.*;
 import com.wos.domain.pojo.Workorder;
+import com.wos.domain.vo.WorkorderDetailVO;
 import com.wos.domain.vo.WorkorderVO;
 import jakarta.validation.Valid;
 
@@ -38,4 +39,12 @@ public interface IWorkorderService extends IService<Workorder> {
     Result<Void> workorderTransfer(Long woId, @Valid RemarkDTO dto);
 
     Result<Void> workorderComplete(Long woId);
+
+    Result<PageResult<WorkorderVO>> workorderList(@Valid WorkorderQueryDTO queryDTO);
+
+    Result<WorkorderDetailVO> getWorkorderDetail(Long woId);
+
+    Result<Void> workorderUpdateDraft(Long woId, @Valid WorkorderUpdateDTO dto);
+
+    Result<Void> workorderDeleteDraft(Long woId);
 }
