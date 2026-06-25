@@ -34,7 +34,7 @@ CREATE TABLE `user` (
   `department_id` BIGINT DEFAULT NULL COMMENT '所属部门id',
   `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  `is_del` TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除:0否 1是',
+  `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1启用 0停用',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_username` (`username`),
   UNIQUE KEY `uk_phone` (`phone`)

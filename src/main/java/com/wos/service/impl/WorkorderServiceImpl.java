@@ -424,6 +424,15 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         if (dto.getAssigneeId() == null) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "接单人不能为空");
         }
+
+        User assignee = userService.getById(dto.getAssigneeId());
+        if (assignee == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "接单人不存在");
+        }
+        if (!Objects.equals(assignee.getStatus(), 1)) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "接单人已停用,无法派单");
+        }
+
         List<String> list = roleService.selectCodesByUserId(dto.getAssigneeId());
         if (!list.contains(RoleEnum.HANDLER.name())) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "该用户不是接单人,无法派单");

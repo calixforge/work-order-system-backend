@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wos.common.PermissionChecker;
 import com.wos.common.Result;
 import com.wos.common.enums.RoleEnum;
+import com.wos.domain.pojo.User;
 import com.wos.domain.pojo.UserRole;
 import com.wos.exception.BusinessException;
 import com.wos.mapper.UserRoleMapper;
@@ -13,6 +14,8 @@ import com.wos.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 
 import static com.wos.common.RedisConstants.USER_ROLE_KEY;
 
@@ -35,8 +38,12 @@ public class UserRoleServiceImpl extends ServiceImpl<UserRoleMapper, UserRole> i
     public Result<Void> assignRole(Long userId, Long roleId) {
         permissionChecker.checkRole(RoleEnum.ADMIN);
 
-        if (userService.getById(userId) == null) {
+        User user = userService.getById(userId);
+        if (user == null) {
             throw new BusinessException("用户不存在");
+        }
+        if (!Objects.equals(user.getStatus(), 1)) {
+            throw new BusinessException("用户已停用,无法分配角色");
         }
         if (roleService.getById(roleId) == null) {
             throw new BusinessException("角色不存在");

@@ -4,7 +4,7 @@ public class RedisConstants {
 
     //分钟
     public static final Long LOGIN_TOKEN_EXPIRE_MINUTES = 30L;
-    public static final String LOGIN_TOKEN_KEY = "login:token:";
+    public static final String LOGIN_USER_TOKEN_KEY = "login:user:token:";
 
     //小时
     public static final Long DEPT_NAME_EXPIRE_HOURS = 24L;

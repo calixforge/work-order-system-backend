@@ -10,12 +10,13 @@
             u.username,
             u.real_name as realName,
             u.department_id as departmentId,
-            d.name as departmentName
+            d.name as departmentName,
+            u.status
         from `user` u
         join user_role ur on u.id = ur.user_id
         join role r on ur.role_id = r.id
         left join department d on u.department_id = d.id and d.is_del = 0
-        where u.is_del = 0
+        where u.status = 1
           and r.is_del = 0
           and r.code = 'HANDLER'
         <if test="query.keyword != null and query.keyword != ''">

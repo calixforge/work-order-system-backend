@@ -20,4 +20,7 @@ public class UserVO {
 
     @Schema(description = "所属部门名称")
     private String departmentName;
+
+    @Schema(description = "状态:1启用 0停用")
+    private Integer status;
 }
