@@ -113,6 +113,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
      * 公共分页查询。
      *
      * 负责处理所有工单列表的通用筛选条件:
+     * - keyword: 工单标题模糊搜索
      * - status: 工单状态
      * - priority: 优先级
      * - createTime 倒序
@@ -125,8 +126,10 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
      */
     private Result<PageResult<WorkorderVO>> pageQuery(WorkorderQueryDTO dto,
                                                       Consumer<LambdaQueryChainWrapper<Workorder>> extra) {
+        String keyword = dto.getKeyword() == null ? null : dto.getKeyword().trim();
         Page<Workorder> page = new Page<>(dto.getPageNum(), dto.getPageSize());
         LambdaQueryChainWrapper<Workorder> query = lambdaQuery()
+                .like(keyword != null && !keyword.isBlank(), Workorder::getTitle, keyword)
                 .eq(dto.getStatus() != null, Workorder::getStatus, dto.getStatus())
                 .eq(dto.getPriority() != null, Workorder::getPriority, dto.getPriority())
                 .orderByDesc(Workorder::getCreateTime);

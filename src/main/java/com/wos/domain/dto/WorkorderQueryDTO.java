@@ -11,6 +11,9 @@ import lombok.Data;
 @Schema(description = "工单查询参数")
 public class WorkorderQueryDTO extends PageQuery {
 
+    @Schema(description = "搜索关键字: 工单标题")
+    private String keyword;
+
     /**
      * 通用列表允许按状态筛选。
      * 待审核/待派单这类固定语义接口会在 Service 层覆盖该值。
