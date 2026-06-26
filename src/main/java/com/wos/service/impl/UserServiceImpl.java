@@ -1,6 +1,7 @@
 package com.wos.service.impl;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wos.common.PageResult;
@@ -9,6 +10,7 @@ import com.wos.common.Result;
 import com.wos.common.ResultCode;
 import com.wos.common.UserContext;
 import com.wos.common.enums.RoleEnum;
+import com.wos.common.enums.WorkOrderStatus;
 import com.wos.domain.dto.ChangePasswordDTO;
 import com.wos.domain.dto.ResetPasswordDTO;
 import com.wos.domain.dto.UserCreateDTO;
@@ -16,10 +18,12 @@ import com.wos.domain.dto.UserQueryDTO;
 import com.wos.domain.dto.UserUpdateDTO;
 import com.wos.domain.pojo.Department;
 import com.wos.domain.pojo.User;
+import com.wos.domain.pojo.Workorder;
 import com.wos.domain.vo.UserDetailVO;
 import com.wos.domain.vo.UserVO;
 import com.wos.exception.BusinessException;
 import com.wos.mapper.UserMapper;
+import com.wos.mapper.WorkorderMapper;
 import com.wos.service.IDepartmentService;
 import com.wos.service.IRoleService;
 import com.wos.service.IUserService;
@@ -56,6 +60,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     private final StringRedisTemplate stringRedisTemplate;
 
     private final PermissionChecker permissionChecker;
+
+    private final WorkorderMapper workorderMapper;
 
     @Override
     public Result<String> login(String username, String password) {
@@ -196,6 +202,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (user == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "用户不存在");
         }
+        checkNoActiveWorkorderObligation(userId);
 
         // 停用而非删除:用户记录保留,历史工单仍能查到 realName。
         // 停用后不能登录、不进派单候选,但角色关系保留(可重新启用)。
@@ -207,6 +214,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         stringRedisTemplate.delete(USER_ROLE_KEY + userId);
 
         return Result.success();
+    }
+
+    private void checkNoActiveWorkorderObligation(Long userId) {
+        Long submittedCreatedCount = workorderMapper.selectCount(new LambdaQueryWrapper<Workorder>()
+                .eq(Workorder::getCreatorId, userId)
+                .notIn(Workorder::getStatus,
+                        WorkOrderStatus.DRAFT.name(),
+                        WorkOrderStatus.CLOSED.name(),
+                        WorkOrderStatus.CANCELED.name()));
+        if (submittedCreatedCount > 0) {
+            throw new BusinessException(ResultCode.CONFLICT, "该用户仍有未结束的提单工单,无法停用");
+        }
+
+        Long assignedCount = workorderMapper.selectCount(new LambdaQueryWrapper<Workorder>()
+                .eq(Workorder::getAssigneeId, userId)
+                .notIn(Workorder::getStatus,
+                        WorkOrderStatus.CLOSED.name(),
+                        WorkOrderStatus.CANCELED.name()));
+        if (assignedCount > 0) {
+            throw new BusinessException(ResultCode.CONFLICT, "该用户仍有未结束的负责工单,无法停用");
+        }
     }
 
     @Override

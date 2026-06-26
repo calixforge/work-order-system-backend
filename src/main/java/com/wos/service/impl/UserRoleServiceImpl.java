@@ -1,13 +1,19 @@
 package com.wos.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wos.common.PermissionChecker;
 import com.wos.common.Result;
+import com.wos.common.ResultCode;
 import com.wos.common.enums.RoleEnum;
+import com.wos.common.enums.WorkOrderStatus;
+import com.wos.domain.pojo.Role;
 import com.wos.domain.pojo.User;
 import com.wos.domain.pojo.UserRole;
+import com.wos.domain.pojo.Workorder;
 import com.wos.exception.BusinessException;
 import com.wos.mapper.UserRoleMapper;
+import com.wos.mapper.WorkorderMapper;
 import com.wos.service.IRoleService;
 import com.wos.service.IUserRoleService;
 import com.wos.service.IUserService;
@@ -33,6 +39,8 @@ public class UserRoleServiceImpl extends ServiceImpl<UserRoleMapper, UserRole> i
     private final IUserService userService;
 
     private final IRoleService roleService;
+
+    private final WorkorderMapper workorderMapper;
 
     @Override
     public Result<Void> assignRole(Long userId, Long roleId) {
@@ -72,17 +80,53 @@ public class UserRoleServiceImpl extends ServiceImpl<UserRoleMapper, UserRole> i
     public Result<Void> revokeRole(Long userId, Long roleId) {
         permissionChecker.checkRole(RoleEnum.ADMIN);
 
-        // 中间表无逻辑删除,按 (user_id, role_id) 物理删除;不存在则删 0 行,无害。
-        boolean removed = lambdaUpdate()
+        Role role = roleService.getById(roleId);
+        if (role == null) {
+            throw new BusinessException("角色不存在");
+        }
+
+        boolean exists = lambdaQuery()
+                .eq(UserRole::getUserId, userId)
+                .eq(UserRole::getRoleId, roleId)
+                .count() > 0;
+        if (!exists) {
+            throw new BusinessException("该用户未拥有此角色");
+        }
+
+        checkNoActiveWorkorderObligation(userId, role);
+
+        // 中间表无逻辑删除,按 (user_id, role_id) 物理删除。
+        lambdaUpdate()
                 .eq(UserRole::getUserId, userId)
                 .eq(UserRole::getRoleId, roleId)
                 .remove();
 
-        if (!removed) {
-            throw new BusinessException("该用户未拥有此角色");
-        }
-
         stringRedisTemplate.delete(USER_ROLE_KEY + userId);
         return Result.success();
+    }
+
+    private void checkNoActiveWorkorderObligation(Long userId, Role role) {
+        if (RoleEnum.SUBMITTER.name().equals(role.getCode())) {
+            Long count = workorderMapper.selectCount(new LambdaQueryWrapper<Workorder>()
+                    .eq(Workorder::getCreatorId, userId)
+                    .notIn(Workorder::getStatus,
+                            WorkOrderStatus.DRAFT.name(),
+                            WorkOrderStatus.CLOSED.name(),
+                            WorkOrderStatus.CANCELED.name()));
+            if (count > 0) {
+                throw new BusinessException(ResultCode.CONFLICT, "该用户仍有未结束的提单工单,无法剥夺提单人角色");
+            }
+        }
+
+        if (RoleEnum.HANDLER.name().equals(role.getCode())) {
+            Long count = workorderMapper.selectCount(new LambdaQueryWrapper<Workorder>()
+                    .eq(Workorder::getAssigneeId, userId)
+                    .notIn(Workorder::getStatus,
+                            WorkOrderStatus.CLOSED.name(),
+                            WorkOrderStatus.CANCELED.name()));
+            if (count > 0) {
+                throw new BusinessException(ResultCode.CONFLICT, "该用户仍有未结束的负责工单,无法剥夺接单人角色");
+            }
+        }
     }
 }
