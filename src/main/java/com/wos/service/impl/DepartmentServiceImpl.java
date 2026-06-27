@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wos.common.PermissionChecker;
 import com.wos.common.Result;
 import com.wos.common.ResultCode;
+import com.wos.common.UserContext;
 import com.wos.common.enums.RoleEnum;
 import com.wos.domain.dto.DepartmentDTO;
 import com.wos.domain.pojo.Department;
@@ -17,6 +18,7 @@ import com.wos.mapper.UserMapper;
 import com.wos.mapper.WorkorderMapper;
 import com.wos.service.IDepartmentService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ import static com.wos.common.RedisConstants.DEPT_NAME_KEY_PREFIX;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Department> implements IDepartmentService {
 
     private final PermissionChecker permissionChecker;
@@ -62,6 +65,8 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
         department.setName(name);
         save(department);
 
+        log.info("管理员创建部门: adminId={}, deptId={}, name={}",
+                UserContext.getUserId(), department.getId(), department.getName());
         return Result.success(department.getId());
     }
 
@@ -81,10 +86,13 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
         String name = normalizeName(dto.getName());
         checkNameAvailable(name, deptId);
 
+        String oldName = department.getName();
         department.setName(name);
         updateById(department);
         stringRedisTemplate.delete(DEPT_NAME_KEY_PREFIX + deptId);
 
+        log.info("管理员更新部门: adminId={}, deptId={}, oldName={}, newName={}",
+                UserContext.getUserId(), deptId, oldName, name);
         return Result.success();
     }
 
@@ -92,12 +100,14 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
     public Result<Void> deleteDepartment(Long deptId) {
         permissionChecker.checkRole(RoleEnum.ADMIN);
 
-        getDepartmentOrThrow(deptId);
+        Department department = getDepartmentOrThrow(deptId);
         checkNoReferences(deptId);
 
         removeById(deptId);
         stringRedisTemplate.delete(DEPT_NAME_KEY_PREFIX + deptId);
 
+        log.info("管理员删除部门: adminId={}, deptId={}, name={}",
+                UserContext.getUserId(), deptId, department.getName());
         return Result.success();
     }
 

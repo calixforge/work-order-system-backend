@@ -30,6 +30,7 @@ import com.wos.service.IUserService;
 import com.wos.util.JwtUtil;
 import com.wos.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,7 @@ import static com.wos.common.RedisConstants.USER_ROLE_KEY;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
     private static final String DEFAULT_AVATAR_URL = "/avatar/default.svg";
@@ -71,11 +73,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         // 登录失败统一提示,避免泄露“账号存在但密码错误”等细节。
         if(user == null || !PasswordUtil.matches(password, user.getPassword())){
+            log.warn("用户登录失败: username={}", username);
             throw new BusinessException(ResultCode.UNAUTHORIZED, "账号或密码错误");
         }
 
         // 只允许启用账号登录;null 或非法状态都按不可登录处理。
         if (!Objects.equals(user.getStatus(), 1)) {
+            log.warn("停用账号尝试登录: userId={}, username={}", user.getId(), user.getUsername());
             throw new BusinessException(ResultCode.FORBIDDEN, "账号已被停用,请联系管理员");
         }
 
@@ -87,6 +91,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 token,
                 LOGIN_TOKEN_EXPIRE_MINUTES, TimeUnit.MINUTES);
 
+        log.info("用户登录成功: userId={}, username={}", user.getId(), user.getUsername());
         return Result.success(token);
     }
 
@@ -102,6 +107,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         stringRedisTemplate.delete(LOGIN_USER_TOKEN_KEY + UserContext.getUserId());
 
+        log.info("用户退出登录: userId={}", UserContext.getUserId());
         return Result.success();
     }
 
@@ -155,6 +161,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setStatus(1);
         save(user);
 
+        log.info("管理员创建用户: adminId={}, userId={}, username={}, departmentId={}",
+                UserContext.getUserId(), user.getId(), user.getUsername(), user.getDepartmentId());
         return Result.success(user.getId());
     }
 
@@ -187,6 +195,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setDepartmentId(dto.getDepartmentId());
         updateById(user);
 
+        log.info("管理员更新用户: adminId={}, userId={}, username={}, departmentId={}",
+                UserContext.getUserId(), userId, user.getUsername(), user.getDepartmentId());
         return Result.success();
     }
 
@@ -213,6 +223,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         stringRedisTemplate.delete(LOGIN_USER_TOKEN_KEY + userId);
         stringRedisTemplate.delete(USER_ROLE_KEY + userId);
 
+        log.info("管理员停用用户: adminId={}, userId={}", UserContext.getUserId(), userId);
         return Result.success();
     }
 
@@ -250,6 +261,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         updateById(user);
         stringRedisTemplate.delete(USER_ROLE_KEY + userId);
 
+        log.info("管理员启用用户: adminId={}, userId={}", UserContext.getUserId(), userId);
         return Result.success();
     }
 
@@ -308,6 +320,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setPassword(PasswordUtil.encode(dto.getNewPassword()));
         updateById(user);
         stringRedisTemplate.delete(LOGIN_USER_TOKEN_KEY + UserContext.getUserId());
+        log.info("用户修改密码: userId={}", UserContext.getUserId());
         return Result.success();
     }
 
@@ -324,6 +337,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setPassword(PasswordUtil.encode(dto.getNewPassword()));
         updateById(user);
         stringRedisTemplate.delete(LOGIN_USER_TOKEN_KEY + userId);
+        log.info("管理员重置用户密码: adminId={}, userId={}", UserContext.getUserId(), userId);
         return Result.success();
     }
 

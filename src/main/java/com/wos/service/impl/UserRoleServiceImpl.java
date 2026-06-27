@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wos.common.PermissionChecker;
 import com.wos.common.Result;
 import com.wos.common.ResultCode;
+import com.wos.common.UserContext;
 import com.wos.common.enums.RoleEnum;
 import com.wos.common.enums.WorkOrderStatus;
 import com.wos.domain.pojo.Role;
@@ -18,6 +19,7 @@ import com.wos.service.IRoleService;
 import com.wos.service.IUserRoleService;
 import com.wos.service.IUserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +32,7 @@ import static com.wos.common.RedisConstants.USER_ROLE_KEY;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserRoleServiceImpl extends ServiceImpl<UserRoleMapper, UserRole> implements IUserRoleService {
 
     private final PermissionChecker permissionChecker;
@@ -53,7 +56,8 @@ public class UserRoleServiceImpl extends ServiceImpl<UserRoleMapper, UserRole> i
         if (!Objects.equals(user.getStatus(), 1)) {
             throw new BusinessException("用户已停用,无法分配角色");
         }
-        if (roleService.getById(roleId) == null) {
+        Role role = roleService.getById(roleId);
+        if (role == null) {
             throw new BusinessException("角色不存在");
         }
 
@@ -73,6 +77,8 @@ public class UserRoleServiceImpl extends ServiceImpl<UserRoleMapper, UserRole> i
 
         // 角色变更:删除该用户的角色缓存,下次读自动回源重建。
         stringRedisTemplate.delete(USER_ROLE_KEY + userId);
+        log.info("管理员分配角色: adminId={}, userId={}, roleId={}, roleCode={}",
+                UserContext.getUserId(), userId, roleId, role.getCode());
         return Result.success();
     }
 
@@ -102,6 +108,8 @@ public class UserRoleServiceImpl extends ServiceImpl<UserRoleMapper, UserRole> i
                 .remove();
 
         stringRedisTemplate.delete(USER_ROLE_KEY + userId);
+        log.info("管理员剥夺角色: adminId={}, userId={}, roleId={}, roleCode={}",
+                UserContext.getUserId(), userId, roleId, role.getCode());
         return Result.success();
     }
 
