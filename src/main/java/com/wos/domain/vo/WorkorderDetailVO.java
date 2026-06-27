@@ -11,6 +11,12 @@ import java.util.List;
 @Schema(description = "工单详情视图")
 public class WorkorderDetailVO extends WorkorderVO {
 
+    @Schema(description = "创建人ID")
+    private Long creatorId;
+
+    @Schema(description = "接单人ID")
+    private Long assigneeId;
+
     @Schema(description = "描述")
     private String description;
 
