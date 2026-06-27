@@ -1,0 +1,52 @@
+# 工单系统一键编排:app + mysql + redis
+# 用法:在本文件同目录放好 Dockerfile / app.jar / sql/ / .env 后,执行 docker compose up -d
+# 密码等敏感值从同目录 .env 读取(.env 不提交)
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: wos-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}   # root 密码,app 以 root 连
+      MYSQL_DATABASE: work_order_system        # 首次启动自动建这个库
+      TZ: Asia/Shanghai
+    command: --default-time-zone=+08:00
+    ports:
+      - "3306:3306"                            # 映射到宿主,方便用 Navicat 等连着调试(可删)
+    volumes:
+      - mysql-data:/var/lib/mysql              # 数据持久化,容器删了数据还在
+      # 首次启动按文件名顺序执行:先建表(01)再插数据(02)
+      - ./sql/work_order_system.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./sql/init_data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+    healthcheck:                               # app 要等 MySQL 真正就绪
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  redis:
+    image: redis:7-alpine
+    container_name: wos-redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]  # 设访问密码
+    ports:
+      - "6379:6379"                            # 调试用,可删
+
+  app:
+    build: .                                   # 用同目录 Dockerfile 构建
+    container_name: wos-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy             # 等 MySQL 健康检查通过再启动
+    environment:
+      SPRING_PROFILES_ACTIVE: docker           # 激活 application-docker.yml
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql-data:

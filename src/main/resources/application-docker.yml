@@ -1,0 +1,26 @@
+# 容器环境配置(由 compose 用 SPRING_PROFILES_ACTIVE=docker 激活)
+# 与 application-local.yml 的区别:
+#   - 数据库/Redis 主机用 compose 服务名 mysql / redis(不是 localhost)
+#   - 密码、JWT 密钥都走环境变量,不写死、不进 git
+spring:
+  application:
+    name: work-order-system
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://mysql:3306/work_order_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${MYSQL_PASSWORD}
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: ${REDIS_PASSWORD}
+      database: 0
+
+logging:
+  pattern:
+    dateformat: yyyy-MM-dd HH:mm:ss.SSS
+
+jwt:
+  secret: ${JWT_SECRET}
+  ttl: 604800000
