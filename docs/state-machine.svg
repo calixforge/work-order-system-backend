@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
+  <title id="title">工单状态机流转图</title>
+  <desc id="desc">工单主流程从草稿流转到已关闭，异常分支包含驳回、撤回、转派、验收不通过和取消。</desc>
+
+  <defs>
+    <marker id="arrow-main" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L11,5.5 L0,11 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-back" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L11,5.5 L0,11 Z" fill="#d97706"/>
+    </marker>
+    <marker id="arrow-stop" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L11,5.5 L0,11 Z" fill="#dc2626"/>
+    </marker>
+    <marker id="arrow-done" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L11,5.5 L0,11 Z" fill="#16a34a"/>
+    </marker>
+
+    <linearGradient id="blue-soft" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f8fbff"/>
+      <stop offset="100%" stop-color="#eff6ff"/>
+    </linearGradient>
+    <linearGradient id="blue-mid" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#eff6ff"/>
+      <stop offset="100%" stop-color="#dbeafe"/>
+    </linearGradient>
+    <linearGradient id="blue-deep" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#dbeafe"/>
+      <stop offset="100%" stop-color="#bfdbfe"/>
+    </linearGradient>
+
+    <style>
+      text {
+        font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", Arial, sans-serif;
+        letter-spacing: 0;
+      }
+      .page-bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #e2e8f0; }
+      .title { fill: #0f172a; font-size: 26px; font-weight: 700; }
+      .subtitle { fill: #64748b; font-size: 14px; }
+      .section { fill: #334155; font-size: 13px; font-weight: 700; }
+      .node { stroke-width: 1.7; }
+      .state-name { fill: #0f172a; font-size: 19px; font-weight: 700; }
+      .state-code { fill: #64748b; font-size: 10.5px; font-weight: 700; }
+      .terminal-note { fill: #64748b; font-size: 12px; }
+      .main-edge { fill: none; stroke: #2563eb; stroke-width: 2.4; marker-end: url(#arrow-main); }
+      .done-edge { fill: none; stroke: #16a34a; stroke-width: 2.4; marker-end: url(#arrow-done); }
+      .back-edge { fill: none; stroke: #d97706; stroke-width: 2.1; stroke-dasharray: 8 6; marker-end: url(#arrow-back); }
+      .stop-edge { fill: none; stroke: #dc2626; stroke-width: 2.1; stroke-dasharray: 8 6; marker-end: url(#arrow-stop); }
+      .label { fill: #0f172a; font-size: 12px; font-weight: 700; }
+      .label-box-main { fill: #eff6ff; stroke: #bfdbfe; }
+      .label-box-done { fill: #ecfdf5; stroke: #bbf7d0; }
+      .label-box-back { fill: #fffbeb; stroke: #fde68a; }
+      .label-box-stop { fill: #fff1f2; stroke: #fecdd3; }
+      .hint { fill: #64748b; font-size: 12px; }
+    </style>
+  </defs>
+
+  <rect class="page-bg" width="1200" height="660"/>
+  <rect class="panel" x="36" y="24" width="1128" height="600" rx="10"/>
+
+  <text class="title" x="64" y="66">工单状态机流转图</text>
+  <text class="section" x="64" y="118">主流程</text>
+  <line x1="64" y1="132" x2="1136" y2="132" stroke="#e2e8f0"/>
+
+  <!-- main transitions -->
+  <path class="main-edge" d="M200 335 H256"/>
+  <path class="main-edge" d="M386 335 H442"/>
+  <path class="main-edge" d="M572 335 H628"/>
+  <path class="main-edge" d="M758 335 H814"/>
+  <path class="done-edge" d="M944 335 H1000"/>
+
+  <!-- return transitions: separated tracks -->
+  <path class="back-edge" d="M321 301 C321 219 154 219 154 301"/>
+  <path class="back-edge" d="M507 301 C507 155 108 155 108 301"/>
+  <path class="back-edge" d="M665 369 C665 443 545 443 545 369"/>
+  <path class="back-edge" d="M879 369 C879 443 735 443 735 369"/>
+
+  <!-- cancel transitions: own lane -->
+  <path class="stop-edge" d="M321 369 L228 481"/>
+  <path class="stop-edge" d="M507 369 L296 481"/>
+
+  <!-- state nodes -->
+  <g text-anchor="middle">
+    <rect class="node" x="70" y="301" width="130" height="68" rx="8" fill="#fff7ed" stroke="#f59e0b"/>
+    <text class="state-name" x="135" y="328">草稿</text>
+    <text class="state-code" x="135" y="351">DRAFT</text>
+
+    <rect class="node" x="256" y="301" width="130" height="68" rx="8" fill="url(#blue-soft)" stroke="#60a5fa"/>
+    <text class="state-name" x="321" y="328">待审核</text>
+    <text class="state-code" x="321" y="351">PENDING_REVIEW</text>
+
+    <rect class="node" x="442" y="301" width="130" height="68" rx="8" fill="url(#blue-mid)" stroke="#3b82f6"/>
+    <text class="state-name" x="507" y="328">待派单</text>
+    <text class="state-code" x="507" y="351">PENDING_ASSIGN</text>
+
+    <rect class="node" x="628" y="301" width="130" height="68" rx="8" fill="url(#blue-deep)" stroke="#2563eb"/>
+    <text class="state-name" x="693" y="328">已接单</text>
+    <text class="state-code" x="693" y="351">ACCEPTED</text>
+
+    <rect class="node" x="814" y="301" width="130" height="68" rx="8" fill="#ecfdf5" stroke="#34d399"/>
+    <text class="state-name" x="879" y="328">已完成</text>
+    <text class="state-code" x="879" y="351">COMPLETED</text>
+
+    <rect class="node" x="1000" y="301" width="130" height="68" rx="8" fill="#f0fdf4" stroke="#22c55e"/>
+    <text class="state-name" x="1065" y="328">已关闭</text>
+    <text class="state-code" x="1065" y="351">CLOSED</text>
+    <text class="terminal-note" x="1065" y="365">终态</text>
+
+    <rect class="node" x="160" y="481" width="136" height="68" rx="8" fill="#fff1f2" stroke="#fb7185"/>
+    <text class="state-name" x="228" y="508">已取消</text>
+    <text class="state-code" x="228" y="531">CANCELED</text>
+    <text class="terminal-note" x="228" y="545">终态</text>
+  </g>
+
+  <!-- labels: kept outside state boxes -->
+  <g text-anchor="middle">
+    <rect class="label-box-main" x="202" y="273" width="52" height="24" rx="7"/>
+    <text class="label" x="228" y="290">提交</text>
+
+    <rect class="label-box-main" x="374" y="273" width="80" height="24" rx="7"/>
+    <text class="label" x="414" y="290">审核通过</text>
+
+    <rect class="label-box-main" x="574" y="273" width="52" height="24" rx="7"/>
+    <text class="label" x="600" y="290">派单</text>
+
+    <rect class="label-box-main" x="750" y="273" width="72" height="24" rx="7"/>
+    <text class="label" x="786" y="290">完成</text>
+
+    <rect class="label-box-done" x="933" y="273" width="78" height="24" rx="7"/>
+    <text class="label" x="972" y="290">验收通过</text>
+
+    <rect class="label-box-back" x="184" y="207" width="88" height="24" rx="7"/>
+    <text class="label" x="228" y="224">驳回 / 撤回</text>
+
+    <rect class="label-box-back" x="374" y="174" width="52" height="24" rx="7"/>
+    <text class="label" x="400" y="191">撤回</text>
+
+    <rect class="label-box-back" x="581" y="431" width="52" height="24" rx="7"/>
+    <text class="label" x="607" y="448">转派</text>
+
+    <rect class="label-box-back" x="759" y="431" width="96" height="24" rx="7"/>
+    <text class="label" x="807" y="448">验收不通过</text>
+
+    <rect class="label-box-stop" x="255" y="410" width="52" height="24" rx="7"/>
+    <text class="label" x="281" y="427">取消</text>
+
+    <rect class="label-box-stop" x="382" y="422" width="52" height="24" rx="7"/>
+    <text class="label" x="408" y="439">取消</text>
+  </g>
+
+  <text class="hint" x="1136" y="608" text-anchor="end">蓝色：正常推进　橙色：回退 / 返工　红色：取消并进入终态</text>
+</svg>
