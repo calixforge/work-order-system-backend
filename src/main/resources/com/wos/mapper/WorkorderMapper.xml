@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wos.mapper.WorkorderMapper">
+    <select id="selectStats" resultType="com.wos.domain.vo.WorkorderStatsVO">
+        select
+            coalesce(sum(case when #{reviewer}
+                     and #{departmentId} is not null
+                     and status = 'PENDING_REVIEW'
+                     and department_id = #{departmentId}
+                then 1 else 0 end), 0) as pendingReview,
+            coalesce(sum(case when #{dispatcher}
+                     and status = 'PENDING_ASSIGN'
+                then 1 else 0 end), 0) as pendingAssign,
+            coalesce(sum(case when #{handler}
+                     and status = 'ACCEPTED'
+                     and assignee_id = #{userId}
+                then 1 else 0 end), 0) as assigned,
+            coalesce(sum(case when #{submitter}
+                     and status = 'COMPLETED'
+                     and creator_id = #{userId}
+                then 1 else 0 end), 0) as pendingAcceptance,
+            coalesce(sum(case when #{submitter}
+                     and creator_id = #{userId}
+                then 1 else 0 end), 0) as created
+        from workorder
+        where is_del = 0
+    </select>
+</mapper>

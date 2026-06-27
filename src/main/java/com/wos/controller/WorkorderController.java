@@ -7,6 +7,7 @@ import com.wos.domain.dto.WorkorderCreateDTO;
 import com.wos.domain.dto.WorkorderQueryDTO;
 import com.wos.domain.dto.WorkorderUpdateDTO;
 import com.wos.domain.vo.WorkorderDetailVO;
+import com.wos.domain.vo.WorkorderStatsVO;
 import com.wos.domain.vo.WorkorderVO;
 import com.wos.service.IWorkorderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -74,6 +75,12 @@ public class WorkorderController {
     public Result<PageResult<WorkorderVO>> workorderQueryDispatch(@Valid @ParameterObject WorkorderQueryDTO queryDTO) {
 
         return workorderService.workorderQueryDispatch(queryDTO);
+    }
+
+    @Operation(summary = "查询首页工单统计")
+    @GetMapping("/stats")
+    public Result<WorkorderStatsVO> workorderStats() {
+        return workorderService.workorderStats();
     }
 
     @Operation(summary = "管理员查看全部工单列表")

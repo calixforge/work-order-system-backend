@@ -15,6 +15,7 @@ import com.wos.domain.pojo.Workorder;
 import com.wos.domain.pojo.WorkorderLog;
 import com.wos.domain.vo.WorkorderDetailVO;
 import com.wos.domain.vo.WorkorderLogVO;
+import com.wos.domain.vo.WorkorderStatsVO;
 import com.wos.domain.vo.WorkorderVO;
 import com.wos.exception.BusinessException;
 import com.wos.mapper.WorkorderMapper;
@@ -106,6 +107,8 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
         save(workorder);
 
+        log.info("创建工单: workorderId={}, creatorId={}, departmentId={}, status={}, submit={}",
+                workorder.getId(), userId, workorder.getDepartmentId(), workorder.getStatus(), createDTO.getSubmit());
         return Result.success(workorder.getId());
     }
 
@@ -274,6 +277,32 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         return pageQuery(queryDTO, q -> {});
     }
 
+    @Override
+    public Result<WorkorderStatsVO> workorderStats() {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED, "未登录");
+        }
+
+        List<String> codes = roleService.selectCodesByUserId(userId);
+        boolean reviewer = codes.contains(RoleEnum.REVIEWER.name());
+        boolean dispatcher = codes.contains(RoleEnum.DISPATCHER.name());
+        boolean handler = codes.contains(RoleEnum.HANDLER.name());
+        boolean submitter = codes.contains(RoleEnum.SUBMITTER.name());
+
+        Long departmentId = null;
+        if (reviewer) {
+            User user = userService.getById(userId);
+            if (user == null) {
+                throw new BusinessException(ResultCode.UNAUTHORIZED, "用户不存在或登录已失效");
+            }
+            departmentId = user.getDepartmentId();
+        }
+
+        WorkorderStatsVO stats = baseMapper.selectStats(userId, departmentId, reviewer, dispatcher, handler, submitter);
+        return Result.success(stats == null ? new WorkorderStatsVO() : stats);
+    }
+
 
     /**
      * 执行工单状态流转。
@@ -290,17 +319,19 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         if (to == null) throw new BusinessException(ResultCode.CONFLICT, "当前状态不能执行该操作");
 
         wo.setStatus(to);
-        WorkorderLog log = new WorkorderLog();
-        log.setWorkorderId(wo.getId());
-        log.setOperatorId(UserContext.getUserId());
-        log.setFromStatus(from);
-        log.setToStatus(to);
-        log.setEvent(event.name());
-        log.setRemark(remark);
+        WorkorderLog workorderLog = new WorkorderLog();
+        workorderLog.setWorkorderId(wo.getId());
+        workorderLog.setOperatorId(UserContext.getUserId());
+        workorderLog.setFromStatus(from);
+        workorderLog.setToStatus(to);
+        workorderLog.setEvent(event.name());
+        workorderLog.setRemark(remark);
 
         //更新工单并保存日志
         updateById(wo);
-        workorderLogService.save(log);
+        workorderLogService.save(workorderLog);
+        log.info("工单状态流转: workorderId={}, operatorId={}, event={}, fromStatus={}, toStatus={}, remarkPresent={}",
+                wo.getId(), UserContext.getUserId(), event.name(), from, to, remark != null && !remark.isBlank());
     }
 
     private void requireRemark(String remark) {
@@ -449,6 +480,8 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
         transition(wo, WorkOrderEvent.ASSIGN, null);
 
+        log.info("工单派单: workorderId={}, dispatcherId={}, assigneeId={}, priority={}",
+                woId, UserContext.getUserId(), dto.getAssigneeId(), wo.getPriority());
         return Result.success();
     }
 
@@ -460,9 +493,14 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         if (!UserContext.getUserId().equals(wo.getAssigneeId())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法转派");
         }
-        wo.setAssigneeId(null);
+        Long previousAssigneeId = wo.getAssigneeId();
         transition(wo, WorkOrderEvent.TRANSFER, dto.getRemark());
+        // 转派后清空负责人，回到待派单池等待重新派单。
+        // updateById 默认跳过 null 字段，故用 lambdaUpdate().set 显式写入 null。
+        lambdaUpdate().set(Workorder::getAssigneeId, null).eq(Workorder::getId, woId).update();
 
+        log.info("工单转派后清空负责人: workorderId={}, operatorId={}, previousAssigneeId={}",
+                woId, UserContext.getUserId(), previousAssigneeId);
         return Result.success();
     }
 
@@ -579,6 +617,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         wo.setPriority(dto.getPriority());
         updateById(wo);
 
+        log.info("编辑草稿工单: workorderId={}, operatorId={}", woId, UserContext.getUserId());
         return Result.success();
     }
 
@@ -599,6 +638,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         // 执行逻辑删
         removeById(woId);
 
+        log.info("删除草稿工单: workorderId={}, operatorId={}", woId, UserContext.getUserId());
         return Result.success();
     }
 
