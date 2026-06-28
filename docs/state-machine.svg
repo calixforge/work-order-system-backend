@@ -52,6 +52,8 @@
       .label-box-done { fill: #ecfdf5; stroke: #bbf7d0; }
       .label-box-back { fill: #fffbeb; stroke: #fde68a; }
       .label-box-stop { fill: #fff1f2; stroke: #fecdd3; }
+      .required-box { fill: #fff1f2; stroke: #fb7185; }
+      .required-text { fill: #b91c1c; font-size: 10.5px; font-weight: 700; }
       .hint { fill: #64748b; font-size: 12px; }
     </style>
   </defs>
@@ -131,23 +133,33 @@
     <text class="label" x="972" y="290">验收通过</text>
 
     <rect class="label-box-back" x="184" y="207" width="88" height="24" rx="7"/>
+    <rect class="required-box" x="276" y="207" width="72" height="24" rx="7"/>
+    <text class="required-text" x="312" y="224">驳回需原因</text>
     <text class="label" x="228" y="224">驳回 / 撤回</text>
 
     <rect class="label-box-back" x="374" y="174" width="52" height="24" rx="7"/>
     <text class="label" x="400" y="191">撤回</text>
 
     <rect class="label-box-back" x="581" y="431" width="52" height="24" rx="7"/>
+    <rect class="required-box" x="637" y="431" width="52" height="24" rx="7"/>
+    <text class="required-text" x="663" y="448">需原因</text>
     <text class="label" x="607" y="448">转派</text>
 
     <rect class="label-box-back" x="759" y="431" width="96" height="24" rx="7"/>
+    <rect class="required-box" x="859" y="431" width="52" height="24" rx="7"/>
+    <text class="required-text" x="885" y="448">需原因</text>
     <text class="label" x="807" y="448">验收不通过</text>
 
     <rect class="label-box-stop" x="255" y="410" width="52" height="24" rx="7"/>
+    <rect class="required-box" x="258" y="438" width="52" height="24" rx="7"/>
+    <text class="required-text" x="284" y="455">需原因</text>
     <text class="label" x="281" y="427">取消</text>
 
     <rect class="label-box-stop" x="382" y="422" width="52" height="24" rx="7"/>
+    <rect class="required-box" x="385" y="450" width="52" height="24" rx="7"/>
+    <text class="required-text" x="411" y="467">需原因</text>
     <text class="label" x="408" y="439">取消</text>
   </g>
 
-  <text class="hint" x="1136" y="608" text-anchor="end">蓝色：正常推进　橙色：回退 / 返工　红色：取消并进入终态</text>
+  <text class="hint" x="1136" y="608" text-anchor="end">蓝色：正常推进　绿色：验收通过（关闭）　橙色：回退 / 返工　红色：取消并进入终态</text>
 </svg>
