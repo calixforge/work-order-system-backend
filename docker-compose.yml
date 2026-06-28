@@ -48,5 +48,17 @@ services:
     ports:
       - "8080:8080"
 
+  nginx:
+    image: nginx:alpine
+    container_name: wos-nginx
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"                                # 全栈入口:浏览器从 80 端口进
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro   # nginx 配置
+      - ./nginx/dist:/usr/share/nginx/html:ro                  # 前端 pnpm build 出的 dist
+
 volumes:
   mysql-data:

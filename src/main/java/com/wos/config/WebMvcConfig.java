@@ -20,9 +20,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        // 登录、注册无需 token
+                        // 登录无需 token
                         "/user/login",
-//                        "/user/register",
                         // Knife4j / OpenAPI 文档相关资源
                         "/doc.html",
                         "/webjars/**",
