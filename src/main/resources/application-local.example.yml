@@ -1,0 +1,49 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: work-order-system
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/work_order_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: your_mysql_password
+  output:
+    ansi:
+      enabled: always
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: your_redis_password
+      database: 0
+  ai:
+    openai:
+      # Chat 模型:填写任意 OpenAI-compatible API 的地址和密钥
+      base-url: https://your-chat-provider.example.com
+      api-key: your_chat_api_key
+      chat:
+        options:
+          model: your_chat_model
+      # Embedding 模型:示例使用 SiliconFlow 的 BAAI/bge-m3
+      embedding:
+        base-url: https://api.siliconflow.cn
+        api-key: your_embedding_api_key
+        options:
+          model: BAAI/bge-m3
+    vectorstore:
+      qdrant:
+        host: localhost
+        port: 6334
+        collection-name: kb
+        initialize-schema: true
+        use-tls: false
+
+logging:
+  pattern:
+    dateformat: yyyy-MM-dd HH:mm:ss.SSS
+
+jwt:
+  secret: replace-with-a-long-random-secret-at-least-32-chars
+  ttl: 604800000

@@ -1,4 +1,4 @@
-# 工单系统一键编排:app + mysql + redis
+# 工单系统一键编排:app + mysql + redis + qdrant
 # 用法:在本文件同目录放好 Dockerfile / app.jar / sql/ / .env 后,执行 docker compose up -d
 # 密码等敏感值从同目录 .env 读取(.env 不提交)
 
@@ -33,6 +33,21 @@ services:
     ports:
       - "6379:6379"                            # 调试用,可删
 
+  qdrant:
+    image: qdrant/qdrant                       # 拉不动时加 daocloud 等镜像前缀
+    container_name: wos-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"                            # HTTP:浏览器开 /dashboard 看数据(调试用)
+      - "6334:6334"                            # gRPC:应用连这个口
+    volumes:
+      - qdrant-data:/qdrant/storage            # 向量数据持久化
+    healthcheck:                               # app 要等 Qdrant HTTP 服务就绪后再初始化向量库
+      test: ["CMD-SHELL", "(curl -fsS http://localhost:6333/healthz || wget -qO- http://localhost:6333/healthz) >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
   app:
     build: .                                   # 用同目录 Dockerfile 构建
     container_name: wos-app
@@ -40,11 +55,17 @@ services:
     depends_on:
       mysql:
         condition: service_healthy             # 等 MySQL 健康检查通过再启动
+      qdrant:
+        condition: service_healthy             # 等 Qdrant ready 后再创建 collection / 导入知识库
     environment:
       SPRING_PROFILES_ACTIVE: docker           # 激活 application-docker.yml
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      AI_BASE_URL: ${AI_BASE_URL}              # chat 模型的 OpenAI 兼容端点
+      AI_API_KEY: ${AI_API_KEY}
+      AI_CHAT_MODEL: ${AI_CHAT_MODEL}
+      AI_EMBEDDING_API_KEY: ${AI_EMBEDDING_API_KEY}   # SiliconFlow(bge-m3)
     ports:
       - "8080:8080"
 
@@ -62,3 +83,4 @@ services:
 
 volumes:
   mysql-data:
+  qdrant-data:

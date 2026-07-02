@@ -1,8 +1,8 @@
 # 智能工单系统
 
-基于 Spring Boot 3 + MyBatis-Plus + Redis 的企业内部工单流转系统，覆盖提单、审核、派单、处理、验收、用户管理、角色分配和部门管理等后台业务场景。
+基于 Spring Boot 3 + MyBatis-Plus + Redis + Spring AI 的企业内部智能工单系统，覆盖提单、审核、派单、处理、验收、用户管理、角色分配、部门管理和 RAG 知识库问答等后台业务场景。
 
-项目围绕工单状态流转、角色权限控制、登录态管理和业务留痕，模拟企业内部协作流程中的真实后端设计。
+项目围绕工单状态流转、角色权限控制、登录态管理、业务留痕和 AI 辅助问答，模拟企业内部协作流程中的真实后端设计。
 
 ## 项目特点
 
@@ -14,6 +14,8 @@
 - 工单流转日志完整留痕，详情页可查看操作轨迹
 - 用户停用不删除，保证历史工单仍能展示人员信息
 - 部门删除前校验历史引用，避免数据断链
+- Spring AI + Qdrant 实现 RAG 知识库问答，支持 Markdown 文档加载、结构化切分、向量检索、相似度阈值拦截和引用溯源
+- Docker Compose 编排 app + MySQL + Redis + Qdrant + Nginx，向量数据使用 Qdrant 卷持久化
 - Knife4j 自动生成接口文档
 
 ## 技术栈
@@ -25,6 +27,9 @@
 | MyBatis-Plus | ORM 与分页 |
 | MySQL | 业务数据存储 |
 | Redis | 登录态与缓存 |
+| Spring AI | 大模型调用、Embedding 与 RAG 管线 |
+| Qdrant | 向量数据持久化与相似度检索 |
+| OpenAI-compatible API | 对接云端 Chat / Embedding 模型 |
 | JWT | token 生成与解析 |
 | BCrypt | 密码加密 |
 | Knife4j / OpenAPI 3 | 接口文档 |
@@ -82,6 +87,15 @@
 - 管理员查询全部工单
 - 工单详情包含基础信息和流转日志
 
+### RAG 智能问答
+
+- 启动时加载 `resources/kb/*.md` 知识库文档
+- Markdown 按标题结构切分，超长段落再做 token 兜底切分
+- 使用 Embedding 模型向量化文档并写入 Qdrant
+- 用户提问时按语义相似度检索 TopK 资料
+- 相似度低于阈值时直接返回暂无资料，减少幻觉和无效模型调用
+- 回答尾部由代码拼接引用来源，便于核对出处
+
 ## 项目结构
 
 ```text
@@ -108,6 +122,8 @@ src/main/java/com/wos
 - Maven 3.8+
 - MySQL 5.7+
 - Redis 6+
+- Qdrant 1.x+
+- 可用的 OpenAI-compatible Chat API 与 Embedding API
 
 ### 初始化数据库
 
@@ -139,33 +155,8 @@ sql/init_data.sql
 src/main/resources/application-local.yml
 ```
 
-示例配置：
+可复制 [application-local.example.yml](src/main/resources/application-local.example.yml) 为 `application-local.yml`，并按本机 MySQL / Redis / Qdrant / AI API 情况填写真实值。
 
-```yaml
-server:
-  port: 8080
-
-spring:
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/work_order_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: your_password
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      database: 0
-
-mybatis-plus:
-  mapper-locations: classpath*:com/wos/mapper/*.xml
-  configuration:
-    map-underscore-to-camel-case: true
-
-jwt:
-  secret: replace-with-a-long-random-secret
-  ttl: 604800000
-```
 
 ### 启动后端
 
@@ -181,89 +172,13 @@ Windows：
 
 ## Docker 部署
 
-使用 Docker Compose 一键编排 nginx + app + MySQL + Redis:Nginx 发前端静态页面并把 `/api` 反代到后端,后端连 MySQL / Redis,整套从浏览器一个入口访问。
+使用 Docker Compose 一键编排 nginx + app + MySQL + Redis + Qdrant:Nginx 发前端静态页面并把 `/api` 反代到后端,后端连 MySQL / Redis / Qdrant,整套从浏览器一个入口访问。
 
 > 前端为独立仓库:<https://github.com/xc605/work-order-system-web>
 
-### 环境要求
+详细部署步骤、目录结构、`.env` 配置、Qdrant 控制台和验证方式见 [Docker 部署指南](docs/docker-deploy.md)。
 
-- Docker 20+ 与 Docker Compose v2(`docker compose version` 可查)
-- 国内服务器建议先配置镜像加速器(`/etc/docker/daemon.json` 的 `registry-mirrors`),否则拉取基础镜像较慢
-
-### 1. 打包后端 jar
-
-```bash
-./mvnw clean package -DskipTests
-```
-
-产物:`target/work-order-system-0.0.1-SNAPSHOT.jar`。
-
-### 2. 打包前端 dist
-
-在前端仓库构建静态资源:
-
-```bash
-git clone https://github.com/xc605/work-order-system-web.git
-cd work-order-system-web
-pnpm install
-pnpm build
-```
-
-产物:`dist/`(纯静态文件)。
-
-### 3. 准备部署目录
-
-新建一个目录,放入以下文件:
-
-```text
-deploy/
-├── Dockerfile                 # 从后端项目根目录拷贝
-├── docker-compose.yml         # 从后端项目根目录拷贝
-├── app.jar                    # 后端 jar,重命名为 app.jar
-├── .env                       # 由 .env.example 复制并填写真实值
-├── sql/
-│   ├── work_order_system.sql  # 从后端 sql/ 拷贝
-│   └── init_data.sql
-└── nginx/
-    ├── nginx.conf             # 从后端 nginx/ 拷贝
-    └── dist/                  # 前端 pnpm build 出的 dist 内容
-```
-
-> `application-docker.yml` 已随 jar 打包,无需单独拷贝。
-
-### 4. 配置 .env
-
-复制 `.env.example` 为 `.env` 并填写真实值(密码避免使用 `$ # " ' \` 反引号、空格等字符):
-
-```text
-MYSQL_PASSWORD=你的MySQL密码
-REDIS_PASSWORD=你的Redis密码
-JWT_SECRET=一段长随机串(至少 32 位)
-```
-
-### 5. 启动
-
-```bash
-docker compose up -d --build
-```
-
-首次启动会:构建 app 镜像 → 启动 MySQL(自动建库并按 `01-schema → 02-data` 顺序执行 `sql/` 初始化脚本)→ 启动 Redis → 启动 app → 启动 nginx。
-
-### 6. 验证
-
-```bash
-docker compose ps            # 四个容器:nginx / app / mysql / redis(mysql 显示 healthy)
-docker compose logs -f app   # 查看 app 启动日志
-```
-
-- 完整系统:浏览器访问 `http://<服务器IP>`(80 端口),用 `admin / admin123` 登录。
-- 后端接口文档(调试):`http://<服务器IP>:8080/doc.html`。
-
-### 说明
-
-- Nginx 发前端 `dist`(SPA 路由回退),并把 `/api` 反代到 `app:8080`(去掉 `/api` 前缀,等价于开发期 vite proxy)。
-- 容器内 app 通过服务名连接:`mysql:3306`、`redis:6379`(见 `application-docker.yml`,由环境变量 `SPRING_PROFILES_ACTIVE=docker` 激活,覆盖默认的 local profile)。
-- MySQL 数据用命名卷 `mysql-data` 持久化;初始化脚本仅在数据卷为空(首次启动)时执行,重启不会重复初始化。
+Docker 部署完成后，可访问 Qdrant 控制台:`http://<服务器IP>:6333/dashboard`。
 
 ## 接口文档
 

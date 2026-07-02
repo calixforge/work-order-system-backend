@@ -34,7 +34,7 @@ public class KnowledgeBaseLoader {
                     .withChunkSize(300)
                     .withMinChunkSizeChars(100)
                     .build();
-
+            vectorStore.delete("type == 'kb'");
             for (Resource kbResource : kbResources) {
                 List<Document> documents = loadMarkdown(kbResource);
 
@@ -56,6 +56,7 @@ public class KnowledgeBaseLoader {
     private List<Document> loadMarkdown(Resource resource) {
         MarkdownDocumentReaderConfig config = MarkdownDocumentReaderConfig.builder()
                 .withAdditionalMetadata("source", resource.getFilename())
+                .withAdditionalMetadata("type", "kb")
                 .build();
 
         return new MarkdownDocumentReader(resource, config).get();
