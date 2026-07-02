@@ -174,7 +174,7 @@ Windows：
 
 使用 Docker Compose 一键编排 nginx + app + MySQL + Redis + Qdrant:Nginx 发前端静态页面并把 `/api` 反代到后端,后端连 MySQL / Redis / Qdrant,整套从浏览器一个入口访问。
 
-> 前端为独立仓库:<https://github.com/xc605/work-order-system-web>
+> 前端为独立仓库:<https://github.com/calixforge/work-order-system-web>
 
 详细部署步骤、目录结构、`.env` 配置、Qdrant 控制台和验证方式见 [Docker 部署指南](docs/docker-deploy.md)。
 

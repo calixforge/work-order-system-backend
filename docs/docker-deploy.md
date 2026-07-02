@@ -2,7 +2,7 @@
 
 使用 Docker Compose 一键编排 nginx + app + MySQL + Redis + Qdrant:Nginx 发前端静态页面并把 `/api` 反代到后端,后端连 MySQL / Redis / Qdrant(向量库),整套从浏览器一个入口访问。
 
-> 前端为独立仓库:<https://github.com/xc605/work-order-system-web>
+> 前端为独立仓库:<https://github.com/calixforge/work-order-system-web>
 
 ## 环境要求
 
@@ -22,7 +22,7 @@
 在前端仓库构建静态资源:
 
 ```bash
-git clone https://github.com/xc605/work-order-system-web.git
+git clone https://github.com/calixforge/work-order-system-web.git
 cd work-order-system-web
 pnpm install
 pnpm build
