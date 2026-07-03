@@ -32,8 +32,6 @@ spring:
       qdrant:
         host: qdrant                           # compose 服务名
         port: 6334                             # gRPC 口
-        collection-name: kb
-        initialize-schema: true
         use-tls: false
 
 logging:

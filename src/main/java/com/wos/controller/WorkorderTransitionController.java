@@ -4,6 +4,7 @@ import com.wos.common.Result;
 import com.wos.domain.dto.AssignDTO;
 import com.wos.domain.dto.RemarkDTO;
 import com.wos.domain.dto.TransitionDTO;
+import com.wos.domain.dto.WorkorderCompleteDTO;
 import com.wos.service.IWorkorderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -109,9 +110,10 @@ public class WorkorderTransitionController {
      */
     @Operation(summary = "完成工单")
     @PutMapping("/{woId}/complete")
-    public Result<Void> workorderComplete(@PathVariable Long woId) {
+    public Result<Void> workorderComplete(@PathVariable Long woId,
+                                          @Valid @RequestBody WorkorderCompleteDTO dto) {
 
-        return workorderService.workorderComplete(woId);
+        return workorderService.workorderComplete(woId, dto);
     }
 
 }

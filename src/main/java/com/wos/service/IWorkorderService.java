@@ -41,7 +41,7 @@ public interface IWorkorderService extends IService<Workorder> {
 
     Result<Void> workorderTransfer(Long woId, @Valid RemarkDTO dto);
 
-    Result<Void> workorderComplete(Long woId);
+    Result<Void> workorderComplete(Long woId, @Valid WorkorderCompleteDTO dto);
 
     Result<PageResult<WorkorderVO>> workorderList(@Valid WorkorderQueryDTO queryDTO);
 

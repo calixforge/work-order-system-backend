@@ -20,6 +20,9 @@ public class WorkorderDetailVO extends WorkorderVO {
     @Schema(description = "描述")
     private String description;
 
+    @Schema(description = "处理结果/解决说明(完成工单时填写)")
+    private String resolutionSummary;
+
     @Schema(description = "流转日志")
     private List<WorkorderLogVO> logs;
 }

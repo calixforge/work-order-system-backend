@@ -26,6 +26,8 @@ public class Workorder {
 
     private String description;
 
+    private String resolutionSummary;
+
     /** 状态,存枚举 name(见 WorkOrderStatus) */
     private String status;
 

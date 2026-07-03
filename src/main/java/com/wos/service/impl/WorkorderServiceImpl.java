@@ -506,13 +506,18 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     @Transactional
-    public Result<Void> workorderComplete(Long woId) {
+    public Result<Void> workorderComplete(Long woId, WorkorderCompleteDTO dto) {
         permissionChecker.checkRole(RoleEnum.HANDLER);
         Workorder wo = getWorkorderOrThrow(woId);
         if (!UserContext.getUserId().equals(wo.getAssigneeId())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法完成");
         }
+        String resolutionSummary = dto.getResolutionSummary().trim();
+        if (resolutionSummary.isBlank()) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "处理结果不能为空");
+        }
         wo.setCompleteTime(LocalDateTime.now());
+        wo.setResolutionSummary(resolutionSummary);
         transition(wo, WorkOrderEvent.COMPLETE, null);
 
         return Result.success();

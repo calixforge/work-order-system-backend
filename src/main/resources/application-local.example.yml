@@ -36,8 +36,6 @@ spring:
       qdrant:
         host: localhost
         port: 6334
-        collection-name: kb
-        initialize-schema: true
         use-tls: false
 
 logging:
