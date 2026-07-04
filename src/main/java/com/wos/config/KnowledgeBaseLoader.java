@@ -1,6 +1,7 @@
 package com.wos.config;
 
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
@@ -18,6 +19,7 @@ import java.util.List;
  * 知识库启动加载:读 resources/kb/*.md → 按结构切分 → 灌入向量库(只在启动时跑一次)
  */
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class KnowledgeBaseLoader {
 
@@ -25,15 +27,10 @@ public class KnowledgeBaseLoader {
     private static final String META_TYPE_KEY = "type";
     private static final String META_TYPE_KB = "kb";
 
+    @Qualifier("kbVectorStore")
     private final VectorStore kbVectorStore;
 
     private final KbProperties kbProperties;
-
-    public KnowledgeBaseLoader(@Qualifier("kbVectorStore") VectorStore kbVectorStore,
-                               KbProperties kbProperties) {
-        this.kbVectorStore = kbVectorStore;
-        this.kbProperties = kbProperties;
-    }
 
     @Value("classpath*:kb/*.md")
     private Resource[] kbResources;
