@@ -13,7 +13,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.wos.common.RedisConstants.LOGIN_TOKEN_EXPIRE_MINUTES;
+import static com.wos.common.RedisConstants.LOGIN_TOKEN_EXPIRE_HOURS;
 import static com.wos.common.RedisConstants.LOGIN_USER_TOKEN_KEY;
 
 /**
@@ -48,7 +48,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             if (currentToken == null || !currentToken.equals(token)) {
                 throw new BusinessException(ResultCode.UNAUTHORIZED, "登录已失效,请重新登录");
             }
-            stringRedisTemplate.expire(LOGIN_USER_TOKEN_KEY + userId, LOGIN_TOKEN_EXPIRE_MINUTES, TimeUnit.MINUTES);
+            stringRedisTemplate.expire(LOGIN_USER_TOKEN_KEY + userId, LOGIN_TOKEN_EXPIRE_HOURS, TimeUnit.HOURS);
             UserContext.setUserId(userId);
             return true;
         } catch (Exception e) {

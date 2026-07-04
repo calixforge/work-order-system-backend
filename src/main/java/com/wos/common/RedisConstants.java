@@ -2,8 +2,8 @@ package com.wos.common;
 
 public class RedisConstants {
 
-    //分钟
-    public static final Long LOGIN_TOKEN_EXPIRE_MINUTES = 30L;
+    //小时
+    public static final Long LOGIN_TOKEN_EXPIRE_HOURS = 24L;
     public static final String LOGIN_USER_TOKEN_KEY = "login:user:token:";
 
     //小时

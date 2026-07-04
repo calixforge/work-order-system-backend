@@ -42,9 +42,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.wos.common.RedisConstants.LOGIN_TOKEN_EXPIRE_MINUTES;
-import static com.wos.common.RedisConstants.LOGIN_USER_TOKEN_KEY;
-import static com.wos.common.RedisConstants.USER_ROLE_KEY;
+import static com.wos.common.RedisConstants.*;
 
 @Service
 @RequiredArgsConstructor
@@ -89,7 +87,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         stringRedisTemplate.opsForValue().set(
                 LOGIN_USER_TOKEN_KEY + user.getId(),
                 token,
-                LOGIN_TOKEN_EXPIRE_MINUTES, TimeUnit.MINUTES);
+                LOGIN_TOKEN_EXPIRE_HOURS, TimeUnit.HOURS);
 
         log.info("用户登录成功: userId={}, username={}", user.getId(), user.getUsername());
         return Result.success(token);
