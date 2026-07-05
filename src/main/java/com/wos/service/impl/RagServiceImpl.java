@@ -77,6 +77,7 @@ public class RagServiceImpl implements IRagService {
                 .call()
                 .content();
 
+        log.info("模型输出：content: {}", content);
         // 模型判定资料无关而输出兜底语时,不拼引用——否则出现"暂无相关资料"却附参考文档的矛盾
         if (content == null || content.contains(NO_RESULT)) {
             return Result.success(EMPTY_REPLY);
