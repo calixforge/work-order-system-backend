@@ -1,6 +1,8 @@
 package com.wos.service.impl;
 
 import com.wos.common.Result;
+import com.wos.domain.vo.RagAnswerVO;
+import com.wos.domain.vo.RagCitationVO;
 import com.wos.service.IRagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -15,9 +17,13 @@ import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -34,6 +40,9 @@ public class RagServiceImpl implements IRagService {
     /** 检索为空 / 模型判资料无关时,给用户的统一回复 */
     private static final String EMPTY_REPLY = "没有找到相关资料。可以问我 IT 或 OA 流程相关的问题,比如:打印机连不上网怎么办。";
 
+    /** 行内引用标注,与 rag-qa.st 中约定的 [资料n] 格式保持一致 */
+    private static final Pattern CITATION_PATTERN = Pattern.compile("\\[资料(\\d+)]");
+
     private final ChatClient chatClient;
 
     private final VectorStore kbVectorStore;
@@ -49,7 +58,7 @@ public class RagServiceImpl implements IRagService {
                 ragQaPromptResource.getInputStream(), StandardCharsets.UTF_8);
     }
 
-    public Result<String> ask(String question) {
+    public Result<RagAnswerVO> ask(String question) {
         List<Document> documents = kbVectorStore.similaritySearch(SearchRequest.builder()
                 .query(question)
                 .topK(TOP_K)
@@ -57,7 +66,7 @@ public class RagServiceImpl implements IRagService {
                 .build());
 
         if (documents.isEmpty()) {
-            return Result.success(EMPTY_REPLY);
+            return Result.success(emptyAnswer());
         }
 
         log.info("documents: {}", documents);
@@ -78,23 +87,53 @@ public class RagServiceImpl implements IRagService {
                 .content();
 
         log.info("模型输出：content: {}", content);
-        // 模型判定资料无关而输出兜底语时,不拼引用——否则出现"暂无相关资料"却附参考文档的矛盾
+        // 模型判定资料无关而输出兜底语时,不带引用——否则出现"暂无相关资料"却附参考文档的矛盾
         if (content == null || content.contains(NO_RESULT)) {
-            return Result.success(EMPTY_REPLY);
+            return Result.success(emptyAnswer());
         }
 
-        String references = documents.stream()
-                .map(d -> {
-                    String title = Objects.toString(d.getMetadata().get("title"), "未知标题");
-                    String source = Objects.toString(d.getMetadata().get("source"), "未知来源");
-                    return "《" + title + "》" + source;
-                })
-                .distinct()
-                .collect(Collectors.joining("、"));
+        RagAnswerVO vo = new RagAnswerVO();
+        vo.setAnswer(content);
+        vo.setCitations(resolveCitations(content, documents));
+        return Result.success(vo);
+    }
 
-        String result = content + "\n参考文档:\n" + references;
-        log.info("contents: {}", result);
+    /**
+     * 解析回答中的 [资料n] 标注,只返回模型实际引用的资料(引用精确化);
+     * 一个有效标注都没有(模型未遵守格式)时回退为全部检索结果——提示词是请求不是保证,代码兜底。
+     */
+    private List<RagCitationVO> resolveCitations(String content, List<Document> documents) {
+        Set<Integer> cited = new LinkedHashSet<>();
+        Matcher matcher = CITATION_PATTERN.matcher(content);
+        while (matcher.find()) {
+            int index = Integer.parseInt(matcher.group(1));
+            // 只认实际存在的编号,模型编造的编号丢弃
+            if (index >= 1 && index <= documents.size()) {
+                cited.add(index);
+            }
+        }
+        if (cited.isEmpty()) {
+            for (int i = 1; i <= documents.size(); i++) {
+                cited.add(i);
+            }
+        }
 
-        return Result.success(result);
+        List<RagCitationVO> citations = new ArrayList<>();
+        for (Integer index : cited) {
+            Document doc = documents.get(index - 1);
+            RagCitationVO citation = new RagCitationVO();
+            citation.setIndex(index);
+            citation.setTitle(Objects.toString(doc.getMetadata().get("title"), "未知标题"));
+            citation.setSectionId(Objects.toString(doc.getMetadata().get("sectionId"), null));
+            citations.add(citation);
+        }
+        return citations;
+    }
+
+    private RagAnswerVO emptyAnswer() {
+        RagAnswerVO vo = new RagAnswerVO();
+        vo.setAnswer(EMPTY_REPLY);
+        vo.setCitations(List.of());
+        return vo;
     }
 }

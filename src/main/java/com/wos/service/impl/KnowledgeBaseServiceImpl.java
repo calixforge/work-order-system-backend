@@ -70,7 +70,7 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeBaseService {
 
     /**
      * 逐行扫描:# 起新分类,## 起新条目,其余行为当前条目内容。
-     * 条目 id 由标题派生(确定性 UUID):文件增删/调序不影响既有 id,改标题才变——
+     * 条目 id 由分类+标题派生(确定性 UUID):文件增删/调序不影响既有 id,改分类或标题才变——
      * 身份从业务键派生而非位置,与工单点 ID 同一原则。
      */
     private List<KnowledgeCategoryVO> parse(String md) {
@@ -92,7 +92,7 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeBaseService {
             } else if (line.startsWith("## ")) {
                 flush(section, buffer);
                 String title = line.substring(3).trim();
-                String id = sectionId(title);
+                String id = sectionId(category == null ? "" : category.getCategory(), title);
                 String prev = idToTitle.putIfAbsent(id, title);
                 if (prev != null) {
                     log.warn("知识库条目 id 冲突:\"{}\" 与 \"{}\" 生成相同 id,引用跳转将错乱,请调整标题", prev, title);
@@ -111,9 +111,9 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeBaseService {
         return categories;
     }
 
-    /** 标题 → 确定性 UUID 字符串(kb: 命名空间,防与其他类型的派生 id 相撞) */
-    private String sectionId(String title) {
-        return UUID.nameUUIDFromBytes(("kb:" + title).getBytes(StandardCharsets.UTF_8)).toString();
+    /** 分类+标题 → 确定性 UUID 字符串(kb: 命名空间,防与其他类型的派生 id 相撞) */
+    private String sectionId(String category, String title) {
+        return UUID.nameUUIDFromBytes(("kb:" + category + "/" + title).getBytes(StandardCharsets.UTF_8)).toString();
     }
 
     /** 把缓冲区内容落到上一个条目,并清空缓冲 */
@@ -142,7 +142,6 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeBaseService {
                 Map<String, Object> metadata = new HashMap<>();
                 metadata.put("sectionId", s.getId());
                 metadata.put("title", s.getTitle());
-                metadata.put("source", kbResource.getFilename());
                 metadata.put(META_TYPE_KEY, META_TYPE_KB);
                 // 句号补换行:适配 TokenTextSplitter 写死的英文标点收刀
                 prepared.add(new Document(s.getContent().replace("。", "。\n"), metadata));
