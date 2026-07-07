@@ -1,10 +1,9 @@
 package com.wos.service;
 
-import com.wos.common.Result;
-import com.wos.domain.vo.RagAnswerVO;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface IRagService {
 
-    /** 知识库问答:返回回答(含 [资料n] 行内标注)与被引用资料列表 */
-    Result<RagAnswerVO> ask(String question);
+    /** 智能问答流式输出:answer 事件返回文本片段,citations 事件返回引用资料 */
+    SseEmitter askStream(String question);
 }

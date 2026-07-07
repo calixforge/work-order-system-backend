@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-@Schema(description = "知识库问答参数")
+@Schema(description = "智能问答参数")
 public class KnowledgeAskDTO {
 
     @Schema(description = "问题")

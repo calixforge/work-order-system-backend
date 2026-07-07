@@ -3,18 +3,19 @@ package com.wos.controller;
 import com.wos.common.Result;
 import com.wos.domain.dto.KnowledgeAskDTO;
 import com.wos.domain.vo.KnowledgeCategoryVO;
-import com.wos.domain.vo.RagAnswerVO;
 import com.wos.service.IKnowledgeBaseService;
 import com.wos.service.IRagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -40,12 +41,12 @@ public class KnowledgeBaseController {
     }
 
     /**
-     * 知识库问答(RAG):语义检索知识库资料,大模型基于资料生成回答。
+     * 智能问答流式输出:前端用 fetch reader 读取 SSE,问题仍通过 POST body 传递。
      */
-    @Operation(summary = "知识库问答")
-    @PostMapping("/ask")
-    public Result<RagAnswerVO> ask(@Valid @RequestBody KnowledgeAskDTO dto) {
+    @Operation(summary = "智能问答流式输出")
+    @PostMapping(value = "/ask/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter askStream(@Valid @RequestBody KnowledgeAskDTO dto) {
 
-        return ragService.ask(dto.getQuestion());
+        return ragService.askStream(dto.getQuestion());
     }
 }

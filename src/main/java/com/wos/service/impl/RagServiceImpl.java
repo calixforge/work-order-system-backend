@@ -1,8 +1,6 @@
 package com.wos.service.impl;
 
-import com.wos.common.Result;
 import com.wos.domain.vo.KnowledgeSectionVO;
-import com.wos.domain.vo.RagAnswerVO;
 import com.wos.domain.vo.RagCitationVO;
 import com.wos.service.IKnowledgeBaseService;
 import com.wos.service.IRagService;
@@ -16,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -44,6 +43,8 @@ public class RagServiceImpl implements IRagService {
     /** 行内引用标注,与 rag-qa.st 中约定的 [资料n] 格式保持一致 */
     private static final Pattern CITATION_PATTERN = Pattern.compile("\\[资料(\\d+)]");
 
+    private static final long SSE_TIMEOUT = 60_000L;
+
     private final ChatClient chatClient;
 
     private final VectorStore kbVectorStore;
@@ -63,7 +64,9 @@ public class RagServiceImpl implements IRagService {
                 ragQaPromptResource.getInputStream(), StandardCharsets.UTF_8);
     }
 
-    public Result<RagAnswerVO> ask(String question) {
+    @Override
+    public SseEmitter askStream(String question) {
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         List<Document> documents = kbVectorStore.similaritySearch(SearchRequest.builder()
                 .query(question)
                 .topK(TOP_K)
@@ -71,11 +74,13 @@ public class RagServiceImpl implements IRagService {
                 .build());
 
         if (documents.isEmpty()) {
-            return Result.success(emptyAnswer());
+            sendEmptyAndComplete(emitter);
+            return emitter;
         }
 
         List<KnowledgeSectionVO> contexts = findFullSections(documents);
-        log.info("RAG召回完成, question={}, chunks={}, sections={}", question, documents.size(), contexts.size());
+        log.info("RAG流式召回完成, question={}, chunks={}, sections={}", question, documents.size(), contexts.size());
+        sendSources(emitter, contexts);
         StringBuilder context = new StringBuilder();
         for (int i = 0; i < contexts.size(); i++) {
             KnowledgeSectionVO item = contexts.get(i);
@@ -84,25 +89,60 @@ public class RagServiceImpl implements IRagService {
                     .append(item.getContent()).append('\n');
         }
 
-        // 规则+资料放 system,用户问题单独放 user——混在同一条 user 消息里,
-        // 模型会把"资料"误当成用户要求回答的内容,被无关资料带偏
         String systemPrompt = ragQaPromptTemplate.replace("{context}", context.toString());
-
-        String content = chatClient.prompt()
+        StringBuilder fullContent = new StringBuilder();
+        chatClient.prompt()
                 .system(systemPrompt)
                 .user(question)
-                .call()
-                .content();
+                .stream()
+                .content()
+                .subscribe(delta -> sendAnswerDelta(emitter, fullContent, delta),
+                        emitter::completeWithError,
+                        () -> completeStream(emitter, fullContent.toString(), contexts));
+        return emitter;
+    }
 
-        log.info("模型输出摘要: {}", abbreviate(content, 300));
-        if (content == null) {
-            return Result.success(emptyAnswer());
+    private void sendAnswerDelta(SseEmitter emitter, StringBuilder fullContent, String delta) {
+        if (delta == null || delta.isEmpty()) {
+            return;
         }
+        fullContent.append(delta);
+        try {
+            emitter.send(SseEmitter.event().name("answer").data(delta));
+        } catch (IOException e) {
+            emitter.completeWithError(e);
+        }
+    }
 
-        RagAnswerVO vo = new RagAnswerVO();
-        vo.setAnswer(content);
-        vo.setCitations(resolveCitations(content, contexts));
-        return Result.success(vo);
+    private void sendSources(SseEmitter emitter, List<KnowledgeSectionVO> contexts) {
+        try {
+            emitter.send(SseEmitter.event().name("sources").data(buildCitations(contexts)));
+        } catch (IOException e) {
+            emitter.completeWithError(e);
+        }
+    }
+
+    private void completeStream(SseEmitter emitter, String content, List<KnowledgeSectionVO> contexts) {
+        try {
+            log.info("模型流式输出摘要: {}", abbreviate(content, 300));
+            emitter.send(SseEmitter.event().name("citations").data(resolveCitations(content, contexts)));
+            emitter.send(SseEmitter.event().name("done").data(""));
+            emitter.complete();
+        } catch (IOException e) {
+            emitter.completeWithError(e);
+        }
+    }
+
+    private void sendEmptyAndComplete(SseEmitter emitter) {
+        try {
+            emitter.send(SseEmitter.event().name("sources").data(List.of()));
+            emitter.send(SseEmitter.event().name("answer").data(EMPTY_REPLY));
+            emitter.send(SseEmitter.event().name("citations").data(List.of()));
+            emitter.send(SseEmitter.event().name("done").data(""));
+            emitter.complete();
+        } catch (IOException e) {
+            emitter.completeWithError(e);
+        }
     }
 
     private String abbreviate(String text, int maxLength) {
@@ -159,10 +199,17 @@ public class RagServiceImpl implements IRagService {
         return citations;
     }
 
-    private RagAnswerVO emptyAnswer() {
-        RagAnswerVO vo = new RagAnswerVO();
-        vo.setAnswer(EMPTY_REPLY);
-        vo.setCitations(List.of());
-        return vo;
+    private List<RagCitationVO> buildCitations(List<KnowledgeSectionVO> contexts) {
+        List<RagCitationVO> citations = new ArrayList<>();
+        for (int i = 0; i < contexts.size(); i++) {
+            KnowledgeSectionVO item = contexts.get(i);
+            RagCitationVO citation = new RagCitationVO();
+            citation.setIndex(i + 1);
+            citation.setTitle(item.getTitle());
+            citation.setSectionId(item.getId());
+            citations.add(citation);
+        }
+        return citations;
     }
+
 }
