@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -49,11 +50,14 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeBaseService {
 
     private List<KnowledgeCategoryVO> catalog = List.of();
 
+    private Map<String, KnowledgeSectionVO> sectionIndex = Map.of();
+
     @PostConstruct
     public void init() {
         try {
             String md = StreamUtils.copyToString(kbResource.getInputStream(), StandardCharsets.UTF_8);
             this.catalog = parse(md);
+            this.sectionIndex = buildSectionIndex(catalog);
             int sectionCount = catalog.stream().mapToInt(c -> c.getSections().size()).sum();
             log.info("知识库目录加载完成:{} 个分类,共 {} 条", catalog.size(), sectionCount);
             ingest();
@@ -66,6 +70,24 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeBaseService {
     @Override
     public List<KnowledgeCategoryVO> getCatalog() {
         return catalog;
+    }
+
+    @Override
+    public Optional<KnowledgeSectionVO> findSectionById(String sectionId) {
+        if (sectionId == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(sectionIndex.get(sectionId));
+    }
+
+    private Map<String, KnowledgeSectionVO> buildSectionIndex(List<KnowledgeCategoryVO> categories) {
+        Map<String, KnowledgeSectionVO> index = new HashMap<>();
+        for (KnowledgeCategoryVO category : categories) {
+            for (KnowledgeSectionVO section : category.getSections()) {
+                index.put(section.getId(), section);
+            }
+        }
+        return index;
     }
 
     /**
