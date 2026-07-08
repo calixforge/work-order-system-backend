@@ -78,6 +78,10 @@ public class RagServiceImpl implements IRagService {
             return emitter;
         }
 
+        log.info("RAG召回chunk: {}", documents.stream()
+                .map(doc -> String.format("pointId=%s, sectionId=%s, score=%.4f",
+                        doc.getId(), doc.getMetadata().get("sectionId"), doc.getScore()))
+                .toList());
         List<KnowledgeSectionVO> contexts = findFullSections(documents);
         log.info("RAG流式召回完成, question={}, chunks={}, sections={}", question, documents.size(), contexts.size());
         sendSources(emitter, contexts);
