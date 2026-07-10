@@ -23,6 +23,7 @@ spring:
       chat:
         options:
           model: ${AI_CHAT_MODEL}
+          temperature: 0.1
       embedding:                               # embedding 单独指向 SiliconFlow bge-m3
         base-url: https://api.siliconflow.cn
         api-key: ${AI_EMBEDDING_API_KEY}

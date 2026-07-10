@@ -26,6 +26,7 @@ spring:
       chat:
         options:
           model: your_chat_model
+          temperature: 0.1
       # Embedding 模型:示例使用 SiliconFlow 的 BAAI/bge-m3
       embedding:
         base-url: https://api.siliconflow.cn
