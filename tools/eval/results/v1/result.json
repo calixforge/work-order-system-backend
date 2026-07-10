@@ -1,0 +1,2656 @@
+{
+  "metadata": {
+    "scriptVersion": "1.0.0",
+    "runId": "baseline-v1",
+    "mode": "baseline",
+    "startedAt": "2026-07-10T13:19:40.284113+00:00",
+    "durationSeconds": 73.32,
+    "baseUrl": "http://localhost:8080",
+    "gitCommit": "26c01f32720c6f727b36c0478c4efeeb6114e465",
+    "gitDirtyBeforeRun": false,
+    "gitStatusBeforeRun": [],
+    "datasetVersion": "v1",
+    "datasetSha256": "f32d87687f6297c9d939c404d966022483c8fb75d6b3401c38ada56ae325d0b0",
+    "kbSha256": "f6836f84680252577ead4fbdb7e9b31eaa05c96a21d2f8a2b0c5d1008ee7dab3",
+    "springProfile": "local",
+    "chatModel": "glm-4-flash-250414",
+    "temperature": 0.1,
+    "embeddingModel": "BAAI/bge-m3",
+    "topK": 3,
+    "similarityThreshold": 0.6,
+    "chunkSize": 300,
+    "caseCount": 28,
+    "manualSampleSeed": "26c01f32720c6f727b36c0478c4efeeb6114e465:v1:f32d87687f6297c9d939c404d966022483c8fb75d6b3401c38ada56ae325d0b0",
+    "serviceRevisionAssumption": "被测服务由记录的干净工作区当前提交构建并启动"
+  },
+  "summary": {
+    "regular": {
+      "total": 25,
+      "autoPassed": 21,
+      "failed": 4
+    },
+    "knownLimit": {
+      "total": 3,
+      "reproduced": 3,
+      "notReproduced": 0
+    },
+    "errors": 0,
+    "needsManualReview": 7,
+    "attributionCounts": {
+      "generation": 5,
+      "retrieval": 2
+    },
+    "byType": {
+      "direct": {
+        "total": 10,
+        "autoPassed": 10,
+        "failed": 0,
+        "errors": 0
+      },
+      "multi_source": {
+        "total": 4,
+        "autoPassed": 1,
+        "failed": 3,
+        "errors": 0
+      },
+      "edge_uncovered": {
+        "total": 3,
+        "autoPassed": 3,
+        "failed": 0,
+        "errors": 0
+      },
+      "reject": {
+        "total": 4,
+        "autoPassed": 4,
+        "failed": 0,
+        "errors": 0
+      },
+      "chat": {
+        "total": 1,
+        "autoPassed": 1,
+        "failed": 0,
+        "errors": 0
+      },
+      "grounding_boundary": {
+        "total": 3,
+        "autoPassed": 2,
+        "failed": 1,
+        "errors": 0
+      }
+    }
+  },
+  "manualSampleIds": [
+    "direct-007",
+    "direct-008",
+    "edge-003",
+    "direct-004",
+    "boundary-001"
+  ],
+  "cases": [
+    {
+      "id": "direct-001",
+      "type": "direct",
+      "question": "办公室打印机开着，但电脑一直搜不到，面板地址是 169.254 开头，应该怎么排查？如果重启打印机后仍然没有取得正常 IP，又该怎么处理？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "打印机无法联网"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "识别 DHCP 获取失败",
+          "anyOf": [
+            "DHCP"
+          ]
+        },
+        {
+          "label": "先重启打印机",
+          "anyOf": [
+            "重启打印机"
+          ]
+        },
+        {
+          "label": "仍失败时处理楼层交换机",
+          "anyOf": [
+            "楼层交换机",
+            "联系行政开弱电间"
+          ]
+        }
+      ],
+      "note": "验证 169.254 场景的语义召回和排查顺序。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "识别 DHCP 获取失败",
+          "matched": true,
+          "matchedAlias": "DHCP"
+        },
+        {
+          "label": "先重启打印机",
+          "matched": true,
+          "matchedAlias": "重启打印机"
+        },
+        {
+          "label": "仍失败时处理楼层交换机",
+          "matched": true,
+          "matchedAlias": "楼层交换机"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "根据资料1，电脑搜不到办公室开着但面板地址为169.254开头的打印机，应按以下步骤排查：\n\n1.检查打印机网线是否插好，网口指示灯是否正常闪烁；无线打印机确认所连WiFi是否为office网络[资料1]。\n2.在打印机面板\"网络设置\"里查看IP地址，如果IP以169.254开头，说明没拿到DHCP地址，重启打印机再看[资料1]。\n\n如果重启打印机后仍然没有取得正常IP，应按以下步骤处理：\n\n1.重启楼层交换机（联系行政开弱电间）[资料1]。\n2.以上步骤全部无效，或同楼层多台打印机同时掉线时，提交\"设备故障\"类工单，描述中注明：打印机型号、所在楼层与位置、面板显示的IP、已尝试过的步骤[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "打印机无法联网",
+            "sectionId": "c51a19a4-7564-3e1a-af9e-fdbb2b58e76a"
+          },
+          {
+            "index": 2,
+            "title": "VPN 连接失败",
+            "sectionId": "c7ac88d7-1d46-342c-92b9-e10fedd770e5"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "打印机无法联网",
+            "sectionId": "c51a19a4-7564-3e1a-af9e-fdbb2b58e76a"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 184,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 5420
+      },
+      "error": null
+    },
+    {
+      "id": "direct-002",
+      "type": "direct",
+      "question": "打印出来的每一页都在同一个位置出现竖线，我该怎么处理，需要提哪类工单？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "打印机打印内容有重影或竖线"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "判断硒鼓感光层问题",
+          "anyOf": [
+            "硒鼓感光层划伤",
+            "感光层划伤"
+          ]
+        },
+        {
+          "label": "需要更换硒鼓",
+          "anyOf": [
+            "更换硒鼓"
+          ]
+        },
+        {
+          "label": "提交耗材申领",
+          "anyOf": [
+            "耗材申领"
+          ]
+        }
+      ],
+      "note": "验证打印质量问题与打印机联网问题的区分。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "判断硒鼓感光层问题",
+          "matched": true,
+          "matchedAlias": "硒鼓感光层划伤"
+        },
+        {
+          "label": "需要更换硒鼓",
+          "matched": true,
+          "matchedAlias": "更换硒鼓"
+        },
+        {
+          "label": "提交耗材申领",
+          "matched": true,
+          "matchedAlias": "耗材申领"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "根据资料1，打印内容出现重影或固定位置竖线，多为硒鼓感光层划伤，需要更换硒鼓[资料1]。建议取出硒鼓轻轻左右摇晃5次再装回，打印测试页对比[资料1]。如果问题依旧，需要提交\"耗材申领\"工单，描述中注明打印机型号与故障表现（附测试页照片更好）[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "打印机打印内容有重影或竖线",
+            "sectionId": "1cac3bb9-e42a-3f0b-b907-ea1294407886"
+          },
+          {
+            "index": 2,
+            "title": "打印机无法联网",
+            "sectionId": "c51a19a4-7564-3e1a-af9e-fdbb2b58e76a"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "打印机打印内容有重影或竖线",
+            "sectionId": "1cac3bb9-e42a-3f0b-b907-ea1294407886"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 86,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 2658
+      },
+      "error": null
+    },
+    {
+      "id": "direct-003",
+      "type": "direct",
+      "question": "我连续输错了几次密码，现在所有内部系统都提示账号锁定，不着急的话多久会自己恢复？如果之后又反复锁定，还要检查什么？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "账号被锁定怎么办"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "连续输错五次",
+          "anyOf": [
+            "输错密码5次",
+            "连续输错5次",
+            "连续输入错误5次"
+          ]
+        },
+        {
+          "label": "三十分钟自动解锁",
+          "anyOf": [
+            "30分钟",
+            "三十分钟"
+          ]
+        },
+        {
+          "label": "检查旧设备密码",
+          "anyOf": [
+            "旧设备",
+            "手机邮箱客户端",
+            "会议室公用电脑"
+          ]
+        }
+      ],
+      "note": "验证锁定次数、时长和反复锁定原因。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "连续输错五次",
+          "matched": true,
+          "matchedAlias": "输错密码5次"
+        },
+        {
+          "label": "三十分钟自动解锁",
+          "matched": true,
+          "matchedAlias": "30分钟"
+        },
+        {
+          "label": "检查旧设备密码",
+          "matched": true,
+          "matchedAlias": "旧设备"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "根据资料1，连续输错密码5次会锁定30分钟，不着急可以等待自动解锁[资料1]。如果之后又反复锁定，需要检查是否有旧设备仍在用旧密码自动登录，例如手机邮箱客户端、会议室公用电脑等，并退出或更新那些设备上的密码[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "账号被锁定怎么办",
+            "sectionId": "57e4cf69-4621-3068-80bb-213a6012606d"
+          },
+          {
+            "index": 2,
+            "title": "账号密码重置",
+            "sectionId": "2155c843-27ed-3ecf-a8f5-1e3ad6aa37a1"
+          },
+          {
+            "index": 3,
+            "title": "VPN 连接失败",
+            "sectionId": "c7ac88d7-1d46-342c-92b9-e10fedd770e5"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "账号被锁定怎么办",
+            "sectionId": "57e4cf69-4621-3068-80bb-213a6012606d"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 65,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 3502
+      },
+      "error": null
+    },
+    {
+      "id": "direct-004",
+      "type": "direct",
+      "question": "我在酒店连接公司 VPN 一直超时，怎样判断是不是酒店网络拦截导致的？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "VPN 连接失败"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "切换手机热点",
+          "anyOf": [
+            "切换手机热点",
+            "手机热点再试"
+          ]
+        },
+        {
+          "label": "热点成功说明当前网络问题",
+          "anyOf": [
+            "热点能连说明是所在网络的问题",
+            "热点成功说明酒店网络有问题",
+            "酒店网络拦截"
+          ]
+        }
+      ],
+      "note": "验证 VPN 超时分支。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "切换手机热点",
+          "matched": true,
+          "matchedAlias": "切换手机热点"
+        },
+        {
+          "label": "热点成功说明当前网络问题",
+          "matched": true,
+          "matchedAlias": "热点能连说明是所在网络的问题"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "切换手机热点再试——部分酒店/机场网络会封443出口,热点能连说明是所在网络的问题[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "VPN 连接失败",
+            "sectionId": "c7ac88d7-1d46-342c-92b9-e10fedd770e5"
+          },
+          {
+            "index": 2,
+            "title": "办公网络整体变慢的排查",
+            "sectionId": "9a520255-877c-306e-b74a-9cc448c77ad9"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "VPN 连接失败",
+            "sectionId": "c7ac88d7-1d46-342c-92b9-e10fedd770e5"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 31,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 1126
+      },
+      "error": null
+    },
+    {
+      "id": "direct-005",
+      "type": "direct",
+      "question": "企业邮箱已经满得收不到邮件了，删完邮件为什么空间还没释放，还能申请扩到多大？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "企业邮箱容量已满"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "清空已删除文件夹",
+          "anyOf": [
+            "清空已删除",
+            "已删除文件夹"
+          ]
+        },
+        {
+          "label": "由部门主管申请",
+          "anyOf": [
+            "由部门主管",
+            "部门主管提交"
+          ]
+        },
+        {
+          "label": "在 OA 提交扩容申请",
+          "anyOf": [
+            "OA提交扩容申请",
+            "OA申请扩容"
+          ]
+        },
+        {
+          "label": "最大 50GB",
+          "anyOf": [
+            "50GB",
+            "50G"
+          ]
+        }
+      ],
+      "note": "验证邮箱清理动作与扩容上限。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "清空已删除文件夹",
+          "matched": true,
+          "matchedAlias": "清空已删除"
+        },
+        {
+          "label": "由部门主管申请",
+          "matched": true,
+          "matchedAlias": "由部门主管"
+        },
+        {
+          "label": "在 OA 提交扩容申请",
+          "matched": true,
+          "matchedAlias": "OA提交扩容申请"
+        },
+        {
+          "label": "最大 50GB",
+          "matched": true,
+          "matchedAlias": "50GB"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "删除邮件后空间未释放，请确保已清空\"已删除\"文件夹，空间才会真正释放[资料1]。如果业务需要更大容量，由部门主管在OA提交扩容申请，单人最大可扩至50GB（标准容量10GB）[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "企业邮箱容量已满",
+            "sectionId": "fea2f605-3b97-3671-87db-f9264c8171f5"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "企业邮箱容量已满",
+            "sectionId": "fea2f605-3b97-3671-87db-f9264c8171f5"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 62,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 2480
+      },
+      "error": null
+    },
+    {
+      "id": "direct-006",
+      "type": "direct",
+      "question": "办公电脑没有管理员权限，我要安装一个软件中心里找不到的开发工具，应该怎么申请？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "软件安装权限"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "提交软件安装工单",
+          "anyOf": [
+            "软件安装类工单",
+            "提交软件安装"
+          ]
+        },
+        {
+          "label": "注明软件名称",
+          "anyOf": [
+            "软件名称",
+            "软件名"
+          ]
+        },
+        {
+          "label": "注明软件版本",
+          "anyOf": [
+            "软件版本",
+            "注明版本",
+            "版本"
+          ]
+        },
+        {
+          "label": "注明业务用途",
+          "anyOf": [
+            "业务用途",
+            "用途"
+          ]
+        },
+        {
+          "label": "IT 评估管理员权限",
+          "anyOf": [
+            "IT评估",
+            "开通本机管理员权限"
+          ]
+        }
+      ],
+      "note": "验证软件中心外软件和开发工具的处理方式。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "提交软件安装工单",
+          "matched": true,
+          "matchedAlias": "软件安装类工单"
+        },
+        {
+          "label": "注明软件名称",
+          "matched": true,
+          "matchedAlias": "软件名称"
+        },
+        {
+          "label": "注明软件版本",
+          "matched": true,
+          "matchedAlias": "版本"
+        },
+        {
+          "label": "注明业务用途",
+          "matched": true,
+          "matchedAlias": "业务用途"
+        },
+        {
+          "label": "IT 评估管理员权限",
+          "matched": true,
+          "matchedAlias": "IT评估"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "需要提交\"软件安装\"类工单，描述中注明软件名称、版本与业务用途。涉及开发类工具（数据库、IDE等）由IT评估后开通本机管理员权限[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "软件安装权限",
+            "sectionId": "41917424-eb77-3b44-b9b2-704e277f6cc0"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "软件安装权限",
+            "sectionId": "41917424-eb77-3b44-b9b2-704e277f6cc0"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 45,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 1948
+      },
+      "error": null
+    },
+    {
+      "id": "direct-007",
+      "type": "direct",
+      "question": "同一片办公区有好几台电脑同时 WiFi 掉线，报修前要记录什么，IT 会查什么？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "WiFi 频繁掉线"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "记录发生时间",
+          "anyOf": [
+            "时间"
+          ]
+        },
+        {
+          "label": "记录发生位置",
+          "anyOf": [
+            "发生位置",
+            "所在位置",
+            "位置"
+          ]
+        },
+        {
+          "label": "记录设备数量",
+          "anyOf": [
+            "受影响设备数量",
+            "设备数量"
+          ]
+        },
+        {
+          "label": "检查 AP 日志",
+          "anyOf": [
+            "AP日志",
+            "AC控制器"
+          ]
+        }
+      ],
+      "note": "验证多设备掉线分支。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "记录发生时间",
+          "matched": true,
+          "matchedAlias": "时间"
+        },
+        {
+          "label": "记录发生位置",
+          "matched": true,
+          "matchedAlias": "位置"
+        },
+        {
+          "label": "记录设备数量",
+          "matched": true,
+          "matchedAlias": "设备数量"
+        },
+        {
+          "label": "检查 AP 日志",
+          "matched": true,
+          "matchedAlias": "AC控制器"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "在提交报修前，需要记录以下信息：发生掉线的时间、具体位置（办公区）、受影响的设备数量[资料1]。IT会调取AC控制器上该区域AP的日志分析[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "WiFi 频繁掉线",
+            "sectionId": "7d59d497-6616-366b-919e-970578afe3e3"
+          },
+          {
+            "index": 2,
+            "title": "排查总原则",
+            "sectionId": "dfd22131-ea8f-3b3e-807e-6586cb2e06c8"
+          },
+          {
+            "index": 3,
+            "title": "办公网络整体变慢的排查",
+            "sectionId": "9a520255-877c-306e-b74a-9cc448c77ad9"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "WiFi 频繁掉线",
+            "sectionId": "7d59d497-6616-366b-919e-970578afe3e3"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 49,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 2661
+      },
+      "error": null
+    },
+    {
+      "id": "direct-008",
+      "type": "direct",
+      "question": "我准备连续请 6 个工作日年假，应该提前多久申请，由谁审批？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "年假申请"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "超过五个工作日",
+          "anyOf": [
+            "超过5个工作日",
+            "连续请年假超过5"
+          ]
+        },
+        {
+          "label": "提前两周",
+          "anyOf": [
+            "提前两周",
+            "提前2周"
+          ]
+        },
+        {
+          "label": "部门总监审批",
+          "anyOf": [
+            "部门总监审批",
+            "总监审批"
+          ]
+        }
+      ],
+      "note": "验证年假长假条件。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "超过五个工作日",
+          "matched": true,
+          "matchedAlias": "超过5个工作日"
+        },
+        {
+          "label": "提前两周",
+          "matched": true,
+          "matchedAlias": "提前两周"
+        },
+        {
+          "label": "部门总监审批",
+          "matched": true,
+          "matchedAlias": "部门总监审批"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "连续请年假超过5个工作日的,需提前两周申请并由部门总监审批[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "年假申请",
+            "sectionId": "01e87cfc-3223-3589-9b7a-0a9a56ad3213"
+          },
+          {
+            "index": 2,
+            "title": "病假与事假",
+            "sectionId": "6954a13e-4e09-3fd1-a1d4-051ef04d4e44"
+          },
+          {
+            "index": 3,
+            "title": "出差申请",
+            "sectionId": "6cdb3b67-6e2f-31a5-9c2c-0781151cd7db"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "年假申请",
+            "sectionId": "01e87cfc-3223-3589-9b7a-0a9a56ad3213"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 23,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 1004
+      },
+      "error": null
+    },
+    {
+      "id": "direct-009",
+      "type": "direct",
+      "question": "一份金额 60 万的合同要盖章，需要在 OA 上传什么，完整要经过哪些审核和审批？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "用章与合同流程"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "上传合同终稿 PDF",
+          "anyOf": [
+            "合同终稿PDF",
+            "上传合同终稿"
+          ]
+        },
+        {
+          "label": "法务审核",
+          "anyOf": [
+            "法务审核"
+          ]
+        },
+        {
+          "label": "法务负责人审批",
+          "anyOf": [
+            "法务负责人"
+          ]
+        },
+        {
+          "label": "分管副总审批",
+          "anyOf": [
+            "分管副总"
+          ]
+        }
+      ],
+      "note": "验证金额阈值和合同盖章流程。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "上传合同终稿 PDF",
+          "matched": true,
+          "matchedAlias": "合同终稿PDF"
+        },
+        {
+          "label": "法务审核",
+          "matched": true,
+          "matchedAlias": "法务审核"
+        },
+        {
+          "label": "法务负责人审批",
+          "matched": true,
+          "matchedAlias": "法务负责人"
+        },
+        {
+          "label": "分管副总审批",
+          "matched": true,
+          "matchedAlias": "分管副总"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "一份金额60万的合同要盖章，需要在OA上传合同终稿PDF[资料1]。完整要经过法务审核[资料1]、法务负责人审批[资料1]、分管副总审批[资料1]。\n\n办理步骤：\n1.在OA提交\"用章申请\"，上传合同终稿PDF[资料1]。\n2.法务审核通过后到行政处加盖合同章，全程约2个工作日[资料1]。\n3.金额超过50万的合同，需法务负责人和分管副总双重审批[资料1]。\n\n注意事项：严禁先盖章后补流程[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "用章与合同流程",
+            "sectionId": "42e59fd9-dfda-32af-982d-31e25338f803"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "用章与合同流程",
+            "sectionId": "42e59fd9-dfda-32af-982d-31e25338f803"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 130,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 3485
+      },
+      "error": null
+    },
+    {
+      "id": "direct-010",
+      "type": "direct",
+      "question": "全公司内部系统正常，但访问某个特定外部网站很慢，防火墙显示出口流量并不高。接下来应该怎么定位？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "办公网络整体变慢的排查"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "先 ping 网关",
+          "anyOf": [
+            "先ping网关",
+            "ping网关"
+          ]
+        },
+        {
+          "label": "再 ping 公网测试地址",
+          "anyOf": [
+            "ping114.114.114.114",
+            "114.114.114.114"
+          ]
+        },
+        {
+          "label": "再 ping 目标站",
+          "anyOf": [
+            "再ping目标站",
+            "ping目标站"
+          ]
+        },
+        {
+          "label": "使用 tracert 对比链路",
+          "anyOf": [
+            "tracert"
+          ]
+        },
+        {
+          "label": "把丢包结果截图交给网络管理员",
+          "anyOf": [
+            "结果截图交给网络管理员",
+            "截图交给网络管理员"
+          ]
+        },
+        {
+          "label": "由 IT 联系运营商报障",
+          "anyOf": [
+            "IT联系运营商报障",
+            "联系运营商报障"
+          ]
+        }
+      ],
+      "note": "覆盖知识库最长条目的全公司外网慢、出口流量不高分支。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "先 ping 网关",
+          "matched": true,
+          "matchedAlias": "先ping网关"
+        },
+        {
+          "label": "再 ping 公网测试地址",
+          "matched": true,
+          "matchedAlias": "ping114.114.114.114"
+        },
+        {
+          "label": "再 ping 目标站",
+          "matched": true,
+          "matchedAlias": "再ping目标站"
+        },
+        {
+          "label": "使用 tracert 对比链路",
+          "matched": true,
+          "matchedAlias": "tracert"
+        },
+        {
+          "label": "把丢包结果截图交给网络管理员",
+          "matched": true,
+          "matchedAlias": "结果截图交给网络管理员"
+        },
+        {
+          "label": "由 IT 联系运营商报障",
+          "matched": true,
+          "matchedAlias": "IT联系运营商报障"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "使用ping和tracert对比内外目标(先ping网关、再ping114.114.114.114、再ping目标站),丢包出现在哪一跳就把结果截图交给网络管理员,大概率是运营商线路或对方服务的问题,这种情况个人和IT都无法立即解决,只能提工单后由IT联系运营商报障[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "办公网络整体变慢的排查",
+            "sectionId": "9a520255-877c-306e-b74a-9cc448c77ad9"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "办公网络整体变慢的排查",
+            "sectionId": "9a520255-877c-306e-b74a-9cc448c77ad9"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 79,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 2372
+      },
+      "error": null
+    },
+    {
+      "id": "multi-001",
+      "type": "multi_source",
+      "question": "我要跨市出差 4 天，按一线城市标准住宿每晚 480 元并坐高铁二等座，出发前如何申请，回来能按什么标准报销？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "出差申请",
+        "差旅费报销标准"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "提前三天申请",
+          "anyOf": [
+            "提前3个工作日",
+            "至少3个工作日"
+          ]
+        },
+        {
+          "label": "填写目的地",
+          "anyOf": [
+            "目的地"
+          ]
+        },
+        {
+          "label": "填写出差事由",
+          "anyOf": [
+            "出差事由",
+            "写明事由",
+            "事由"
+          ]
+        },
+        {
+          "label": "填写出差天数",
+          "anyOf": [
+            "出差天数",
+            "写明天数",
+            "天数"
+          ]
+        },
+        {
+          "label": "填写预估费用",
+          "anyOf": [
+            "预估费用"
+          ]
+        },
+        {
+          "label": "高铁二等座可报销",
+          "anyOf": [
+            "高铁二等座"
+          ]
+        },
+        {
+          "label": "交通凭实际票据报销",
+          "anyOf": [
+            "凭实际票据报销",
+            "按实际票据报销"
+          ]
+        },
+        {
+          "label": "一线住宿上限五百",
+          "anyOf": [
+            "500元",
+            "五百元"
+          ]
+        },
+        {
+          "label": "附申请单编号",
+          "anyOf": [
+            "出差申请单编号"
+          ]
+        }
+      ],
+      "note": "题面直接给出一线城市标准，避免依赖外部城市分类。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": false,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "提前三天申请",
+          "matched": false,
+          "matchedAlias": null
+        },
+        {
+          "label": "填写目的地",
+          "matched": true,
+          "matchedAlias": "目的地"
+        },
+        {
+          "label": "填写出差事由",
+          "matched": true,
+          "matchedAlias": "事由"
+        },
+        {
+          "label": "填写出差天数",
+          "matched": true,
+          "matchedAlias": "天数"
+        },
+        {
+          "label": "填写预估费用",
+          "matched": true,
+          "matchedAlias": "预估费用"
+        },
+        {
+          "label": "高铁二等座可报销",
+          "matched": true,
+          "matchedAlias": "高铁二等座"
+        },
+        {
+          "label": "交通凭实际票据报销",
+          "matched": true,
+          "matchedAlias": "凭实际票据报销"
+        },
+        {
+          "label": "一线住宿上限五百",
+          "matched": true,
+          "matchedAlias": "500元"
+        },
+        {
+          "label": "附申请单编号",
+          "matched": true,
+          "matchedAlias": "出差申请单编号"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_fail",
+      "suggestedAttribution": "generation",
+      "needsManualReview": true,
+      "warnings": [],
+      "actual": {
+        "answer": "资料2、资料1\n您要跨市出差4天，出发前需要在OA系统提交出差申请，写明目的地、事由、天数和预估费用，由主管审批[资料2]。跨省出差或超过5天的需要总监级审批，但您出差4天不需要总监级审批[资料2]。\n\n回来后，按以下标准报销：\n-交通：高铁二等座凭实际票据报销[资料1]。\n-住宿：一线城市每晚上限500元，您每晚480元超标部分自理[资料1]。\n-餐补：出差期间每天100元包干，不需要发票[资料1]。\n-所有差旅报销需附OA上已审批通过的出差申请单编号[资料1]。\n\n注意事项：建议机票和高铁票通过OA内嵌的商旅平台预订，可直接走公司月结不用垫付；自行购票的保留行程单用于报销[资料2]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "差旅费报销标准",
+            "sectionId": "64e2dbbd-7149-3003-9d6d-3e10d74895e7"
+          },
+          {
+            "index": 2,
+            "title": "出差申请",
+            "sectionId": "6cdb3b67-6e2f-31a5-9c2c-0781151cd7db"
+          },
+          {
+            "index": 3,
+            "title": "报销流程",
+            "sectionId": "8ab9ef15-b11e-38ae-a58d-838105663842"
+          }
+        ],
+        "citations": [
+          {
+            "index": 2,
+            "title": "出差申请",
+            "sectionId": "6cdb3b67-6e2f-31a5-9c2c-0781151cd7db"
+          },
+          {
+            "index": 1,
+            "title": "差旅费报销标准",
+            "sectionId": "64e2dbbd-7149-3003-9d6d-3e10d74895e7"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 193,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 5219
+      },
+      "error": null
+    },
+    {
+      "id": "multi-002",
+      "type": "multi_source",
+      "question": "我忘记密码后刚完成重置，但账号又反复被锁，应该分别检查哪些地方，什么时候需要联系 IT？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "账号密码重置",
+        "账号被锁定怎么办"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "退出全部旧登录端",
+          "anyOf": [
+            "退出所有已登录端",
+            "退出全部登录端"
+          ]
+        },
+        {
+          "label": "检查仍使用旧密码的设备",
+          "anyOf": [
+            "旧密码自动登录",
+            "手机邮箱客户端",
+            "会议室公用电脑"
+          ]
+        },
+        {
+          "label": "必要时人工解锁",
+          "anyOf": [
+            "人工解锁",
+            "联系IT",
+            "账号权限类工单"
+          ]
+        }
+      ],
+      "note": "同一账号故障链路的双来源组合。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "退出全部旧登录端",
+          "matched": true,
+          "matchedAlias": "退出所有已登录端"
+        },
+        {
+          "label": "检查仍使用旧密码的设备",
+          "matched": true,
+          "matchedAlias": "旧密码自动登录"
+        },
+        {
+          "label": "必要时人工解锁",
+          "matched": true,
+          "matchedAlias": "人工解锁"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "忘记密码后刚完成重置，账号又反复被锁，应按以下步骤检查：\n\n1.检查是否有旧设备仍在用旧密码自动登录，如手机邮箱客户端、会议室公用电脑等，确保这些设备上的密码已更新[资料1]。\n2.确认新密码符合要求：至少8位，包含大小写字母和数字，且不与最近3次使用过的密码相同[资料2]。\n3.重置密码后，退出所有已登录端（如手机、会议室电脑），再用新密码登录[资料2]。\n\n如果自查后问题依旧，需要联系IT：\n\n-提供工号和部门主管姓名用于身份核验，提交\"账号权限\"类工单或联系IT（分机8001）[资料1]。\n-说明情况时，描述中注明工号与需要重置的系统[资料2]。\n\n注意事项：账号连续认证失败也会触发锁定，人工解锁同样需要身份核验[资料1][资料3]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "账号被锁定怎么办",
+            "sectionId": "57e4cf69-4621-3068-80bb-213a6012606d"
+          },
+          {
+            "index": 2,
+            "title": "账号密码重置",
+            "sectionId": "2155c843-27ed-3ecf-a8f5-1e3ad6aa37a1"
+          },
+          {
+            "index": 3,
+            "title": "VPN 连接失败",
+            "sectionId": "c7ac88d7-1d46-342c-92b9-e10fedd770e5"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "账号被锁定怎么办",
+            "sectionId": "57e4cf69-4621-3068-80bb-213a6012606d"
+          },
+          {
+            "index": 2,
+            "title": "账号密码重置",
+            "sectionId": "2155c843-27ed-3ecf-a8f5-1e3ad6aa37a1"
+          },
+          {
+            "index": 3,
+            "title": "VPN 连接失败",
+            "sectionId": "c7ac88d7-1d46-342c-92b9-e10fedd770e5"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 203,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 7026
+      },
+      "error": null
+    },
+    {
+      "id": "multi-003",
+      "type": "multi_source",
+      "question": "我在家能正常上网，但打不开 OA；VPN 又提示连接超时。应该按什么顺序排查，仍失败时工单写哪些信息？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "无法访问内部系统但能上外网",
+        "VPN 连接失败"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "外网访问内网必须连接 VPN",
+          "anyOf": [
+            "必须先连VPN",
+            "先连接VPN"
+          ]
+        },
+        {
+          "label": "切换手机热点",
+          "anyOf": [
+            "切换手机热点"
+          ]
+        },
+        {
+          "label": "工单注明网络环境",
+          "anyOf": [
+            "网络环境"
+          ]
+        },
+        {
+          "label": "工单注明客户端版本",
+          "anyOf": [
+            "客户端版本"
+          ]
+        },
+        {
+          "label": "工单附报错截图",
+          "anyOf": [
+            "报错截图"
+          ]
+        },
+        {
+          "label": "工单注明热点测试情况",
+          "anyOf": [
+            "是否已切换热点",
+            "热点测试"
+          ]
+        },
+        {
+          "label": "工单注明代理软件情况",
+          "anyOf": [
+            "是否开启过代理软件",
+            "代理软件"
+          ]
+        }
+      ],
+      "note": "验证内网访问前提与 VPN 故障双来源。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": false,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": false,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "外网访问内网必须连接 VPN",
+          "matched": false,
+          "matchedAlias": null
+        },
+        {
+          "label": "切换手机热点",
+          "matched": true,
+          "matchedAlias": "切换手机热点"
+        },
+        {
+          "label": "工单注明网络环境",
+          "matched": true,
+          "matchedAlias": "网络环境"
+        },
+        {
+          "label": "工单注明客户端版本",
+          "matched": true,
+          "matchedAlias": "客户端版本"
+        },
+        {
+          "label": "工单附报错截图",
+          "matched": true,
+          "matchedAlias": "报错截图"
+        },
+        {
+          "label": "工单注明热点测试情况",
+          "matched": true,
+          "matchedAlias": "是否已切换热点"
+        },
+        {
+          "label": "工单注明代理软件情况",
+          "matched": true,
+          "matchedAlias": "是否开启过代理软件"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_fail",
+      "suggestedAttribution": "generation",
+      "needsManualReview": true,
+      "warnings": [],
+      "actual": {
+        "answer": "根据资料1和资料3，排查顺序和工单信息如下：\n\n**排查顺序**:\n1.检查本机DNS是否为自动获取，如果是手动设置（如8.8.8.8），改回自动获取。\n2.执行命令行`ipconfig/flushdns`清空DNS缓存后重试访问OA。\n3.确认使用公司统一下发的EasyConnect客户端，版本不低于7.6。\n4.确认连接地址为`vpn.company.com`，端口443。\n5.尝试切换手机热点再试VPN连接，排除网络问题。\n6.如果VPN连接成功但仍然访问不了内部系统，关闭其他代理软件后重试。\n\n**需要提交工单的情况**:\n-以上步骤全部无效，或同一部门多人同时无法连接。\n-工单描述中需注明：所在网络环境、客户端版本、报错截图、是否已切换热点测试、是否开启过代理软件[资料2][资料3]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "无法访问内部系统但能上外网",
+            "sectionId": "c585a01b-4c00-3b8a-a3d8-5c3c4e33e63d"
+          },
+          {
+            "index": 2,
+            "title": "排查总原则",
+            "sectionId": "dfd22131-ea8f-3b3e-807e-6586cb2e06c8"
+          },
+          {
+            "index": 3,
+            "title": "VPN 连接失败",
+            "sectionId": "c7ac88d7-1d46-342c-92b9-e10fedd770e5"
+          }
+        ],
+        "citations": [
+          {
+            "index": 2,
+            "title": "排查总原则",
+            "sectionId": "dfd22131-ea8f-3b3e-807e-6586cb2e06c8"
+          },
+          {
+            "index": 3,
+            "title": "VPN 连接失败",
+            "sectionId": "c7ac88d7-1d46-342c-92b9-e10fedd770e5"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 201,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 7001
+      },
+      "error": null
+    },
+    {
+      "id": "multi-004",
+      "type": "multi_source",
+      "question": "部门急需买一块 800 元硬盘，我先垫付前要做什么，之后报销时发票和 OA 流程有哪些要求？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "采购申请",
+        "报销流程"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "单独提交采购申请工单",
+          "anyOf": [
+            "单独提交采购申请",
+            "提交采购申请工单"
+          ]
+        },
+        {
+          "label": "必须在垫付前知会",
+          "anyOf": [
+            "事前知会",
+            "垫付前知会"
+          ]
+        },
+        {
+          "label": "知会行政负责人",
+          "anyOf": [
+            "行政负责人"
+          ]
+        },
+        {
+          "label": "在 OA 提交报销单",
+          "anyOf": [
+            "OA系统提交报销单",
+            "在OA提交报销单"
+          ]
+        },
+        {
+          "label": "上传发票",
+          "anyOf": [
+            "上传发票照片",
+            "上传发票"
+          ]
+        },
+        {
+          "label": "发票抬头必须为公司全称",
+          "anyOf": [
+            "发票抬头必须为公司全称",
+            "抬头为公司全称"
+          ]
+        }
+      ],
+      "note": "采购前置流程与垫付后报销组合。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": false,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "单独提交采购申请工单",
+          "matched": true,
+          "matchedAlias": "单独提交采购申请"
+        },
+        {
+          "label": "必须在垫付前知会",
+          "matched": false,
+          "matchedAlias": null
+        },
+        {
+          "label": "知会行政负责人",
+          "matched": true,
+          "matchedAlias": "行政负责人"
+        },
+        {
+          "label": "在 OA 提交报销单",
+          "matched": false,
+          "matchedAlias": null
+        },
+        {
+          "label": "上传发票",
+          "matched": true,
+          "matchedAlias": "上传发票照片"
+        },
+        {
+          "label": "发票抬头必须为公司全称",
+          "matched": false,
+          "matchedAlias": null
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_fail",
+      "suggestedAttribution": "generation",
+      "needsManualReview": true,
+      "warnings": [],
+      "actual": {
+        "answer": "急用物品先行垫付前需在群里知会行政负责人[资料2]。报销时，需提交\"采购申请\"工单，描述中注明用途和参考型号，由行政比价采购[资料2]。单张发票金额超过500元的，需单独提交\"采购申请\"工单[资料2]。报销单需在OA系统提交并上传发票照片，电子发票上传PDF原件[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "报销流程",
+            "sectionId": "8ab9ef15-b11e-38ae-a58d-838105663842"
+          },
+          {
+            "index": 2,
+            "title": "采购申请",
+            "sectionId": "ada2d6d7-8910-3215-bfa3-9280e9fa7744"
+          },
+          {
+            "index": 3,
+            "title": "出差申请",
+            "sectionId": "6cdb3b67-6e2f-31a5-9c2c-0781151cd7db"
+          }
+        ],
+        "citations": [
+          {
+            "index": 2,
+            "title": "采购申请",
+            "sectionId": "ada2d6d7-8910-3215-bfa3-9280e9fa7744"
+          },
+          {
+            "index": 1,
+            "title": "报销流程",
+            "sectionId": "8ab9ef15-b11e-38ae-a58d-838105663842"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 93,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 3707
+      },
+      "error": null
+    },
+    {
+      "id": "edge-001",
+      "type": "edge_uncovered",
+      "question": "打印机一直卡纸，纸张取出来后仍然反复卡住，具体要拆哪个部件检查？",
+      "expectedOutcome": "pass",
+      "shouldReject": true,
+      "expectedSources": [],
+      "expectedKeyPoints": [],
+      "note": "打印机领域内但 KB 没有卡纸拆机步骤；最终必须拒绝编造。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [
+        "最终拒答正确，但检索层仍召回了候选资料"
+      ],
+      "actual": {
+        "answer": "暂无相关资料。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "打印机打印内容有重影或竖线",
+            "sectionId": "1cac3bb9-e42a-3f0b-b907-ea1294407886"
+          },
+          {
+            "index": 2,
+            "title": "打印机无法联网",
+            "sectionId": "c51a19a4-7564-3e1a-af9e-fdbb2b58e76a"
+          }
+        ],
+        "citations": [],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 5,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 578
+      },
+      "error": null
+    },
+    {
+      "id": "edge-002",
+      "type": "edge_uncovered",
+      "question": "办公电脑开机后一直蓝屏，错误码是 0x0000007E，应该怎么修复？",
+      "expectedOutcome": "pass",
+      "shouldReject": true,
+      "expectedSources": [],
+      "expectedKeyPoints": [],
+      "note": "IT 支持领域内但 KB 没有蓝屏故障条目。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": true,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "没有找到相关资料。可以问我 IT 或 OA 流程相关的问题,比如:打印机连不上网怎么办。",
+        "sources": [],
+        "citations": [],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 1,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 157
+      },
+      "error": null
+    },
+    {
+      "id": "edge-003",
+      "type": "edge_uncovered",
+      "question": "我提交的 OA 请假单已经让主管审批通过了，现在想撤回，具体在哪里操作？",
+      "expectedOutcome": "pass",
+      "shouldReject": true,
+      "expectedSources": [],
+      "expectedKeyPoints": [],
+      "note": "OA 域内但 KB 没有撤回已审批流程的说明。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [
+        "最终拒答正确，但检索层仍召回了候选资料"
+      ],
+      "actual": {
+        "answer": "暂无相关资料。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "病假与事假",
+            "sectionId": "6954a13e-4e09-3fd1-a1d4-051ef04d4e44"
+          },
+          {
+            "index": 2,
+            "title": "出差申请",
+            "sectionId": "6cdb3b67-6e2f-31a5-9c2c-0781151cd7db"
+          },
+          {
+            "index": 3,
+            "title": "报销流程",
+            "sectionId": "8ab9ef15-b11e-38ae-a58d-838105663842"
+          }
+        ],
+        "citations": [],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 5,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 592
+      },
+      "error": null
+    },
+    {
+      "id": "reject-001",
+      "type": "reject",
+      "question": "公司食堂星期五中午有什么菜？",
+      "expectedOutcome": "pass",
+      "shouldReject": true,
+      "expectedSources": [],
+      "expectedKeyPoints": [],
+      "note": "库外生活信息。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": true,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "没有找到相关资料。可以问我 IT 或 OA 流程相关的问题,比如:打印机连不上网怎么办。",
+        "sources": [],
+        "citations": [],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 1,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 137
+      },
+      "error": null
+    },
+    {
+      "id": "reject-002",
+      "type": "reject",
+      "question": "明天下午会不会下雨，我出门要带伞吗？",
+      "expectedOutcome": "pass",
+      "shouldReject": true,
+      "expectedSources": [],
+      "expectedKeyPoints": [],
+      "note": "库外实时天气。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": true,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "没有找到相关资料。可以问我 IT 或 OA 流程相关的问题,比如:打印机连不上网怎么办。",
+        "sources": [],
+        "citations": [],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 1,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 131
+      },
+      "error": null
+    },
+    {
+      "id": "reject-003",
+      "type": "reject",
+      "question": "给我推荐一部适合周末看的科幻电影。",
+      "expectedOutcome": "pass",
+      "shouldReject": true,
+      "expectedSources": [],
+      "expectedKeyPoints": [],
+      "note": "库外娱乐推荐。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": true,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "没有找到相关资料。可以问我 IT 或 OA 流程相关的问题,比如:打印机连不上网怎么办。",
+        "sources": [],
+        "citations": [],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 1,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 124
+      },
+      "error": null
+    },
+    {
+      "id": "reject-004",
+      "type": "reject",
+      "question": "今天 A 股哪个行业涨得最好？",
+      "expectedOutcome": "pass",
+      "shouldReject": true,
+      "expectedSources": [],
+      "expectedKeyPoints": [],
+      "note": "库外实时行情。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": true,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "没有找到相关资料。可以问我 IT 或 OA 流程相关的问题,比如:打印机连不上网怎么办。",
+        "sources": [],
+        "citations": [],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 1,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 171
+      },
+      "error": null
+    },
+    {
+      "id": "chat-001",
+      "type": "chat",
+      "question": "你好，你能帮我做什么？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [],
+      "expectedKeyPoints": [
+        {
+          "label": "说明可查询 IT/OA 知识",
+          "anyOf": [
+            "IT",
+            "OA",
+            "工单知识库",
+            "打印机连不上网"
+          ]
+        }
+      ],
+      "note": "验证闲聊不拼接引用，并能说明助手能力边界。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": false,
+        "emptySources": true,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "说明可查询 IT/OA 知识",
+          "matched": true,
+          "matchedAlias": "IT"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "没有找到相关资料。可以问我 IT 或 OA 流程相关的问题,比如:打印机连不上网怎么办。",
+        "sources": [],
+        "citations": [],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 1,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 135
+      },
+      "error": null
+    },
+    {
+      "id": "boundary-001",
+      "type": "grounding_boundary",
+      "question": "两个人出差拼住一间房，总房费 700 元，两人各自实际分摊 350 元，每个人能报销多少？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "差旅费报销标准"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "每人三百五十元",
+          "anyOf": [
+            "350元",
+            "三百五十元"
+          ]
+        }
+      ],
+      "note": "测试拼房前提，不能把住宿上限当成实际报销金额。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "每人三百五十元",
+          "matched": true,
+          "matchedAlias": "350元"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "根据资料1，拼房住宿按实际分摊金额报销，住宿超标部分自理[资料1]。\n\n总房费为700元，两人分摊后每人350元，未超过资料1中一线城市每晚上限500元的标准[资料1]。\n\n因此，每人可以报销350元[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "差旅费报销标准",
+            "sectionId": "64e2dbbd-7149-3003-9d6d-3e10d74895e7"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "差旅费报销标准",
+            "sectionId": "64e2dbbd-7149-3003-9d6d-3e10d74895e7"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 64,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 1835
+      },
+      "error": null
+    },
+    {
+      "id": "boundary-002",
+      "type": "grounding_boundary",
+      "question": "我要去云州市出差，住宿费每晚 420 元能不能全部报销？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "差旅费报销标准"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "一线城市每晚上限五百元",
+          "anyOf": [
+            "一线城市每晚上限500元",
+            "一线城市500元"
+          ]
+        },
+        {
+          "label": "其他城市每晚上限三百五十元",
+          "anyOf": [
+            "其他城市350元",
+            "其他城市每晚上限350元"
+          ]
+        },
+        {
+          "label": "资料无法判断云州市分类",
+          "anyOf": [
+            "资料未说明云州市分类",
+            "无法判断云州市属于哪类城市",
+            "未提供云州市的城市分类"
+          ]
+        }
+      ],
+      "note": "使用虚构城市测试模型是否擅自补充城市等级。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": false,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "一线城市每晚上限五百元",
+          "matched": false,
+          "matchedAlias": null
+        },
+        {
+          "label": "其他城市每晚上限三百五十元",
+          "matched": false,
+          "matchedAlias": null
+        },
+        {
+          "label": "资料无法判断云州市分类",
+          "matched": false,
+          "matchedAlias": null
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_fail",
+      "suggestedAttribution": "generation",
+      "needsManualReview": true,
+      "warnings": [],
+      "actual": {
+        "answer": "云州市住宿超标部分自理，每晚上限350元[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "差旅费报销标准",
+            "sectionId": "64e2dbbd-7149-3003-9d6d-3e10d74895e7"
+          },
+          {
+            "index": 2,
+            "title": "出差申请",
+            "sectionId": "6cdb3b67-6e2f-31a5-9c2c-0781151cd7db"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "差旅费报销标准",
+            "sectionId": "64e2dbbd-7149-3003-9d6d-3e10d74895e7"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 17,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 1349
+      },
+      "error": null
+    },
+    {
+      "id": "boundary-003",
+      "type": "grounding_boundary",
+      "question": "我只连续请 5 个工作日年假，也必须提前两周并让部门总监审批吗？",
+      "expectedOutcome": "pass",
+      "shouldReject": false,
+      "expectedSources": [
+        "年假申请"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "规则要求超过五天",
+          "anyOf": [
+            "超过5个工作日",
+            "超过五个工作日"
+          ]
+        },
+        {
+          "label": "正好五天不适用加严流程",
+          "anyOf": [
+            "不需要提前两周",
+            "无需提前两周",
+            "未明确要求提前两周",
+            "正常年假申请流程"
+          ]
+        }
+      ],
+      "note": "测试严格条件，不能把“超过五天”扩大为“五天及以上”。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": true,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "规则要求超过五天",
+          "matched": true,
+          "matchedAlias": "超过5个工作日"
+        },
+        {
+          "label": "正好五天不适用加严流程",
+          "matched": true,
+          "matchedAlias": "不需要提前两周"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "auto_pass",
+      "suggestedAttribution": null,
+      "needsManualReview": false,
+      "warnings": [],
+      "actual": {
+        "answer": "关于连续请年假超过5个工作日，需提前两周申请并由部门总监审批，这个规定仅适用于连续请年假超过5个工作日的情况[资料1]。如果您只连续请5个工作日年假，则不需要提前两周申请，也不需要部门总监审批[资料1]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "年假申请",
+            "sectionId": "01e87cfc-3223-3589-9b7a-0a9a56ad3213"
+          },
+          {
+            "index": 2,
+            "title": "病假与事假",
+            "sectionId": "6954a13e-4e09-3fd1-a1d4-051ef04d4e44"
+          },
+          {
+            "index": 3,
+            "title": "加班与调休",
+            "sectionId": "3e5d836f-4606-331b-a28f-19d30ce6989a"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "年假申请",
+            "sectionId": "01e87cfc-3223-3589-9b7a-0a9a56ad3213"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 67,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 4177
+      },
+      "error": null
+    },
+    {
+      "id": "limit-001",
+      "type": "known_limit",
+      "question": "打印机面板显示 169.254 地址应该怎么处理？另外我入职满 3 年有几天年假？",
+      "expectedOutcome": "known_limit",
+      "shouldReject": false,
+      "expectedSources": [
+        "打印机无法联网",
+        "年假申请"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "打印机 DHCP 处理",
+          "anyOf": [
+            "DHCP",
+            "重启打印机"
+          ]
+        },
+        {
+          "label": "满三年八天年假",
+          "anyOf": [
+            "8天",
+            "八天"
+          ]
+        }
+      ],
+      "note": "两个无关意图混合，记录查询语义稀释边界，不计入普通通过率。",
+      "checks": {
+        "protocol": true,
+        "retrieval": false,
+        "citations": false,
+        "rejection": false,
+        "emptySources": false,
+        "keyPoints": false,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "打印机 DHCP 处理",
+          "matched": true,
+          "matchedAlias": "DHCP"
+        },
+        {
+          "label": "满三年八天年假",
+          "matched": false,
+          "matchedAlias": null
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "known_limit_reproduced",
+      "suggestedAttribution": "retrieval",
+      "needsManualReview": true,
+      "warnings": [],
+      "actual": {
+        "answer": "打印机面板显示169.254地址，说明打印机没有获取到DHCP动态IP地址，应重启打印机后再次查看。如果重启后仍未取得正常IP地址，需要重启楼层交换机（联系行政开弱电间）[资料1]。\n\n关于入职满3年有几天年假的问题，暂无相关资料。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "打印机无法联网",
+            "sectionId": "c51a19a4-7564-3e1a-af9e-fdbb2b58e76a"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "打印机无法联网",
+            "sectionId": "c51a19a4-7564-3e1a-af9e-fdbb2b58e76a"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 71,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 2212
+      },
+      "error": null
+    },
+    {
+      "id": "limit-002",
+      "type": "known_limit",
+      "question": "VPN 提示连接超时怎么排查？顺便告诉我 60 万合同盖章要经过谁审批。",
+      "expectedOutcome": "known_limit",
+      "shouldReject": false,
+      "expectedSources": [
+        "VPN 连接失败",
+        "用章与合同流程"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "VPN 切换热点",
+          "anyOf": [
+            "切换手机热点"
+          ]
+        },
+        {
+          "label": "法务负责人审批",
+          "anyOf": [
+            "法务负责人"
+          ]
+        },
+        {
+          "label": "分管副总审批",
+          "anyOf": [
+            "分管副总"
+          ]
+        }
+      ],
+      "note": "网络故障与合同流程混合，观察 TopK 下多意图召回。",
+      "checks": {
+        "protocol": true,
+        "retrieval": false,
+        "citations": false,
+        "rejection": false,
+        "emptySources": false,
+        "keyPoints": false,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "VPN 切换热点",
+          "matched": true,
+          "matchedAlias": "切换手机热点"
+        },
+        {
+          "label": "法务负责人审批",
+          "matched": false,
+          "matchedAlias": null
+        },
+        {
+          "label": "分管副总审批",
+          "matched": false,
+          "matchedAlias": null
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "known_limit_reproduced",
+      "suggestedAttribution": "retrieval",
+      "needsManualReview": true,
+      "warnings": [],
+      "actual": {
+        "answer": "关于VPN提示连接超时，可以尝试以下排查步骤：\n1.切换手机热点再试——部分酒店/机场网络会封443出口,热点能连说明是所在网络的问题[资料1]。\n2.关闭其他代理软件后重试,VPN与代理软件冲突是最常见原因[资料1]。\n3.执行ipconfig/flushdns清空DNS缓存[资料1]。\n\n关于60万合同盖章审批流程，暂无相关资料。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "VPN 连接失败",
+            "sectionId": "c7ac88d7-1d46-342c-92b9-e10fedd770e5"
+          },
+          {
+            "index": 2,
+            "title": "排查总原则",
+            "sectionId": "dfd22131-ea8f-3b3e-807e-6586cb2e06c8"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "VPN 连接失败",
+            "sectionId": "c7ac88d7-1d46-342c-92b9-e10fedd770e5"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 101,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 3400
+      },
+      "error": null
+    },
+    {
+      "id": "limit-003",
+      "type": "known_limit",
+      "question": "邮箱空间满了怎样真正释放容量？部门还想采购一台 6000 元的显示器，需要谁审批？",
+      "expectedOutcome": "known_limit",
+      "shouldReject": false,
+      "expectedSources": [
+        "企业邮箱容量已满",
+        "采购申请"
+      ],
+      "expectedKeyPoints": [
+        {
+          "label": "清空已删除邮件",
+          "anyOf": [
+            "清空已删除",
+            "已删除文件夹"
+          ]
+        },
+        {
+          "label": "单价超过五千元",
+          "anyOf": [
+            "超过5000元",
+            "单价超过5000元"
+          ]
+        },
+        {
+          "label": "高价资产由分管副总审批",
+          "anyOf": [
+            "分管副总审批",
+            "分管副总"
+          ]
+        }
+      ],
+      "note": "邮箱维护与资产采购混合，作为多意图边界样本。",
+      "checks": {
+        "protocol": true,
+        "retrieval": true,
+        "citations": true,
+        "rejection": true,
+        "emptySources": false,
+        "keyPoints": false,
+        "forbiddenClear": true
+      },
+      "keyPointDetails": [
+        {
+          "label": "清空已删除邮件",
+          "matched": true,
+          "matchedAlias": "清空已删除"
+        },
+        {
+          "label": "单价超过五千元",
+          "matched": false,
+          "matchedAlias": null
+        },
+        {
+          "label": "高价资产由分管副总审批",
+          "matched": true,
+          "matchedAlias": "分管副总审批"
+        }
+      ],
+      "forbiddenHits": [],
+      "autoStatus": "known_limit_reproduced",
+      "suggestedAttribution": "generation",
+      "needsManualReview": true,
+      "warnings": [],
+      "actual": {
+        "answer": "邮箱空间满了要真正释放容量，需要执行以下步骤：\n1.删除\"已发送\"里的大附件邮件和三年前的归档邮件[资料1]。\n2.删除后清空\"已删除\"文件夹，空间才真正释放[资料1]。\n3.大附件建议改用内部网盘分享链接，避免复发[资料1]。\n\n部门想采购一台6000元的显示器，需要分管副总审批[资料2]。",
+        "sources": [
+          {
+            "index": 1,
+            "title": "企业邮箱容量已满",
+            "sectionId": "fea2f605-3b97-3671-87db-f9264c8171f5"
+          },
+          {
+            "index": 2,
+            "title": "采购申请",
+            "sectionId": "ada2d6d7-8910-3215-bfa3-9280e9fa7744"
+          }
+        ],
+        "citations": [
+          {
+            "index": 1,
+            "title": "企业邮箱容量已满",
+            "sectionId": "fea2f605-3b97-3671-87db-f9264c8171f5"
+          },
+          {
+            "index": 2,
+            "title": "采购申请",
+            "sectionId": "ada2d6d7-8910-3215-bfa3-9280e9fa7744"
+          }
+        ],
+        "done": true,
+        "eventCounts": {
+          "sources": 1,
+          "answer": 91,
+          "citations": 1,
+          "done": 1
+        },
+        "unknownEvents": [],
+        "protocolErrors": [],
+        "durationMs": 2894
+      },
+      "error": null
+    }
+  ]
+}
