@@ -5,9 +5,11 @@ import com.wos.common.PageResult;
 import com.wos.common.Result;
 import com.wos.domain.dto.SimilarWorkorderQueryDTO;
 import com.wos.domain.dto.WorkorderCreateDTO;
+import com.wos.domain.dto.WorkorderCreatedQueryDTO;
 import com.wos.domain.dto.WorkorderQueryDTO;
 import com.wos.domain.dto.WorkorderUpdateDTO;
 import com.wos.domain.vo.SimilarWorkorderVO;
+import com.wos.domain.vo.WorkorderCreateVO;
 import com.wos.domain.vo.WorkorderDetailVO;
 import com.wos.domain.vo.WorkorderStatsVO;
 import com.wos.domain.vo.WorkorderVO;
@@ -50,7 +52,7 @@ public class WorkorderController {
      */
     @Operation(summary = "创建工单")
     @PostMapping("/create")
-    public Result<Long> workorderCreate(@Valid @RequestBody WorkorderCreateDTO createDTO) {
+    public Result<WorkorderCreateVO> workorderCreate(@Valid @RequestBody WorkorderCreateDTO createDTO) {
 
         return workorderService.workorderCreate(createDTO);
     }
@@ -60,7 +62,7 @@ public class WorkorderController {
      */
     @Operation(summary = "查看个人创建工单列表")
     @GetMapping("/created")
-    public Result<PageResult<WorkorderVO>> workorderQueryCreated(@Valid @ParameterObject WorkorderQueryDTO queryDTO) {
+    public Result<PageResult<WorkorderVO>> workorderQueryCreated(@Valid @ParameterObject WorkorderCreatedQueryDTO queryDTO) {
 
         return workorderService.workorderQueryCreated(queryDTO);
     }
@@ -108,23 +110,23 @@ public class WorkorderController {
         return workorderService.workorderList(queryDTO);
     }
 
-    @Operation(summary = "查询工单详情")
-    @GetMapping("/{woId}")
-    public Result<WorkorderDetailVO> getWorkorderDetail(@PathVariable Long woId) {
-        return workorderService.getWorkorderDetail(woId);
+    @Operation(summary = "按工单编号查询工单详情")
+    @GetMapping("/code/{code}")
+    public Result<WorkorderDetailVO> getWorkorderDetailByCode(@PathVariable String code) {
+        return workorderService.getWorkorderDetailByCode(code);
     }
 
     @Operation(summary = "编辑草稿工单")
-    @PutMapping("/{woId}")
-    public Result<Void> workorderUpdateDraft(@PathVariable Long woId,
+    @PutMapping("/{code}")
+    public Result<Void> workorderUpdateDraft(@PathVariable String code,
                                              @Valid @RequestBody WorkorderUpdateDTO dto) {
-        return workorderService.workorderUpdateDraft(woId, dto);
+        return workorderService.workorderUpdateDraft(code, dto);
     }
 
     @Operation(summary = "删除草稿工单")
-    @DeleteMapping("/{woId}")
-    public Result<Void> workorderDeleteDraft(@PathVariable Long woId) {
-        return workorderService.workorderDeleteDraft(woId);
+    @DeleteMapping("/{code}")
+    public Result<Void> workorderDeleteDraft(@PathVariable String code) {
+        return workorderService.workorderDeleteDraft(code);
     }
 
 }

@@ -5,6 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDate;
 
 
 @Data
@@ -24,4 +27,12 @@ public class WorkorderQueryDTO extends PageQuery {
     @Min(1) @Max(3)
     @Schema(description = "优先级:1高 2中 3低")
     private Integer priority;
+
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    @Schema(description = "创建日期起点，包含当天，格式 yyyy-MM-dd")
+    private LocalDate startDate;
+
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    @Schema(description = "创建日期终点，包含当天，格式 yyyy-MM-dd")
+    private LocalDate endDate;
 }

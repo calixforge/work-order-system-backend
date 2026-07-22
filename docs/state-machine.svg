@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
   <title id="title">工单状态机流转图</title>
-  <desc id="desc">工单主流程从草稿流转到已关闭，异常分支包含驳回、撤回、转派、验收不通过和取消。</desc>
+  <desc id="desc">工单主流程从草稿流转到已验收，异常分支包含驳回、撤回、转派、验收不通过和取消。</desc>
 
   <defs>
     <marker id="arrow-main" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto" markerUnits="strokeWidth">
@@ -97,15 +97,16 @@
     <text class="state-code" x="507" y="351">PENDING_ASSIGN</text>
 
     <rect class="node" x="628" y="301" width="130" height="68" rx="8" fill="url(#blue-deep)" stroke="#2563eb"/>
-    <text class="state-name" x="693" y="328">已接单</text>
+    <text class="state-name" x="693" y="328">处理中</text>
     <text class="state-code" x="693" y="351">ACCEPTED</text>
 
     <rect class="node" x="814" y="301" width="130" height="68" rx="8" fill="#ecfdf5" stroke="#34d399"/>
-    <text class="state-name" x="879" y="328">已完成</text>
-    <text class="state-code" x="879" y="351">COMPLETED</text>
+    <text class="state-name" x="879" y="322">处理完成</text>
+    <text class="state-name" x="879" y="342">待验收</text>
+    <text class="state-code" x="879" y="361">COMPLETED</text>
 
     <rect class="node" x="1000" y="301" width="130" height="68" rx="8" fill="#f0fdf4" stroke="#22c55e"/>
-    <text class="state-name" x="1065" y="328">已关闭</text>
+    <text class="state-name" x="1065" y="328">已验收</text>
     <text class="state-code" x="1065" y="351">CLOSED</text>
     <text class="terminal-note" x="1065" y="365">终态</text>
 
@@ -161,5 +162,5 @@
     <text class="label" x="408" y="439">取消</text>
   </g>
 
-  <text class="hint" x="1136" y="608" text-anchor="end">蓝色：正常推进　绿色：验收通过（关闭）　橙色：回退 / 返工　红色：取消并进入终态</text>
+  <text class="hint" x="1136" y="608" text-anchor="end">蓝色：正常推进　绿色：验收通过（已验收）　橙色：回退 / 返工　红色：取消并进入终态</text>
 </svg>

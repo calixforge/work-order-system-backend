@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 @Schema(description = "工单视图")
 public class WorkorderVO {
 
-    @Schema(description = "工单ID")
-    private Long id;
+    @Schema(description = "对外工单编号")
+    private String code;
 
     @Schema(description = "标题")
     private String title;

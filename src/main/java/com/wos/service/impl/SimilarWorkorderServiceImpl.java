@@ -2,6 +2,7 @@ package com.wos.service.impl;
 
 import com.wos.common.Result;
 import com.wos.common.enums.WorkOrderStatus;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.wos.domain.dto.SimilarWorkorderQueryDTO;
 import com.wos.domain.pojo.Workorder;
 import com.wos.domain.vo.SimilarWorkorderVO;
@@ -33,10 +34,16 @@ public class SimilarWorkorderServiceImpl implements ISimilarWorkorderService {
     private final WorkorderMapper workorderMapper;
 
     @Override
-    public void indexWorkorder(Long woId) {
-        Workorder wo = workorderMapper.selectById(woId);
+    public void indexWorkorder(String code) {
+        String normalizedCode = code == null ? null : code.trim().toUpperCase(Locale.ROOT);
+        if (normalizedCode == null || normalizedCode.isBlank()) {
+            log.warn("工单编号为空,跳过相似库索引");
+            return;
+        }
+        Workorder wo = workorderMapper.selectOne(new LambdaQueryWrapper<Workorder>()
+                .eq(Workorder::getCode, normalizedCode));
         if (wo == null || !WorkOrderStatus.CLOSED.name().equals(wo.getStatus())) {
-            log.info("工单 {} 非已关闭状态,跳过相似库索引", woId);
+            log.info("工单 {} 不存在或非已关闭状态,跳过相似库索引", normalizedCode);
             return;
         }
 
@@ -47,6 +54,7 @@ public class SimilarWorkorderServiceImpl implements ISimilarWorkorderService {
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("workorderId", wo.getId());
+        metadata.put("workorderCode", Objects.toString(wo.getCode(), ""));
         metadata.put("title", wo.getTitle());
         metadata.put("description", Objects.toString(wo.getDescription(), ""));
         metadata.put("resolutionSummary", Objects.toString(wo.getResolutionSummary(), ""));
@@ -57,7 +65,7 @@ public class SimilarWorkorderServiceImpl implements ISimilarWorkorderService {
         byte[] bytes = ("workorder:" + wo.getId()).getBytes(StandardCharsets.UTF_8);
         Document doc = new Document(UUID.nameUUIDFromBytes(bytes).toString(), text, metadata);
         ticketVectorStore.add(List.of(doc));
-        log.info("工单 {} 已索引至相似工单库", woId);
+        log.info("工单 {} 已索引至相似工单库", normalizedCode);
     }
 
     @Override
@@ -71,8 +79,17 @@ public class SimilarWorkorderServiceImpl implements ISimilarWorkorderService {
         List<SimilarWorkorderVO> vos = documents.stream().map(d -> {
             Map<String, Object> md = d.getMetadata();
             SimilarWorkorderVO vo = new SimilarWorkorderVO();
-            Object woId = md.get("workorderId");
-            vo.setWorkorderId(woId == null ? null : Long.valueOf(woId.toString()));
+            String workorderCode = Objects.toString(md.get("workorderCode"), "");
+            if (workorderCode.isBlank()) {
+                Object workorderId = md.get("workorderId");
+                if (workorderId != null) {
+                    Workorder legacyWorkorder = workorderMapper.selectById(Long.valueOf(workorderId.toString()));
+                    workorderCode = legacyWorkorder == null
+                            ? ""
+                            : Objects.toString(legacyWorkorder.getCode(), "");
+                }
+            }
+            vo.setWorkorderCode(workorderCode);
             vo.setTitle(Objects.toString(md.get("title"), ""));
             vo.setDescription(Objects.toString(md.get("description"), ""));
             vo.setResolutionSummary(Objects.toString(md.get("resolutionSummary"), ""));

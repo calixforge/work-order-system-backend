@@ -31,10 +31,10 @@ public class WorkorderTransitionController {
      * 工单从 DRAFT 流转到 PENDING_REVIEW。
      */
     @Operation(summary = "提交工单")
-    @PutMapping("/{woId}/submit")
-    public Result<Void> workorderSubmit(@PathVariable Long woId) {
+    @PutMapping("/{code}/submit")
+    public Result<Void> workorderSubmit(@PathVariable String code) {
 
-        return workorderService.workorderSubmit(woId);
+        return workorderService.workorderSubmit(code);
     }
 
     /**
@@ -42,10 +42,10 @@ public class WorkorderTransitionController {
      * 接单前可撤回到草稿,修改后需要重新提交审核。
      */
     @Operation(summary = "撤回工单")
-    @PutMapping("/{woId}/withdraw")
-    public Result<Void> workorderWithdraw(@PathVariable Long woId) {
+    @PutMapping("/{code}/withdraw")
+    public Result<Void> workorderWithdraw(@PathVariable String code) {
 
-        return workorderService.workorderWithdraw(woId);
+        return workorderService.workorderWithdraw(code);
     }
 
     /**
@@ -53,11 +53,11 @@ public class WorkorderTransitionController {
      * 接单前可取消工单,取消后进入终态 CANCELED。
      */
     @Operation(summary = "取消工单")
-    @PutMapping("/{woId}/cancel")
-    public Result<Void> workorderCancel(@PathVariable Long woId,
+    @PutMapping("/{code}/cancel")
+    public Result<Void> workorderCancel(@PathVariable String code,
                                         @Valid @RequestBody RemarkDTO dto) {
 
-        return workorderService.workorderCancel(woId, dto);
+        return workorderService.workorderCancel(code, dto);
     }
 
     /**
@@ -65,11 +65,11 @@ public class WorkorderTransitionController {
      * 审核通过进入待派单;审核驳回退回草稿。
      */
     @Operation(summary = "审核工单")
-    @PutMapping("/{woId}/review")
-    public Result<Void> workorderReview(@PathVariable Long woId,
+    @PutMapping("/{code}/review")
+    public Result<Void> workorderReview(@PathVariable String code,
                                         @Valid @RequestBody TransitionDTO dto) {
 
-        return workorderService.workorderReview(woId, dto);
+        return workorderService.workorderReview(code, dto);
     }
 
 
@@ -78,17 +78,17 @@ public class WorkorderTransitionController {
      * 验收通过关闭工单;验收不通过退回接单人返工。
      */
     @Operation(summary = "验收工单")
-    @PutMapping("/{woId}/acceptance")
-    public Result<Void> workorderAcceptance(@PathVariable Long woId,
+    @PutMapping("/{code}/acceptance")
+    public Result<Void> workorderAcceptance(@PathVariable String code,
                                         @Valid @RequestBody TransitionDTO dto) {
 
-        Result<Void> result = workorderService.workorderAcceptance(woId, dto);
+        Result<Void> result = workorderService.workorderAcceptance(code, dto);
         // 事务已提交后再索引;service 内部只对 CLOSED 状态入库(验收不通过自动跳过)。
         // 索引失败仅记日志降级,不影响验收主流程。
         try {
-            similarWorkorderService.indexWorkorder(woId);
+            similarWorkorderService.indexWorkorder(code);
         } catch (Exception e) {
-            log.error("工单 {} 相似库索引失败(已降级,不影响验收)", woId, e);
+            log.error("工单 {} 相似库索引失败(已降级,不影响验收)", code, e);
         }
         return result;
     }
@@ -98,11 +98,11 @@ public class WorkorderTransitionController {
      * 指定接单人后,工单从 PENDING_ASSIGN 流转到 ACCEPTED。
      */
     @Operation(summary = "派发工单")
-    @PutMapping("/{woId}/assign")
-    public Result<Void> workorderAssign(@PathVariable Long woId,
+    @PutMapping("/{code}/assign")
+    public Result<Void> workorderAssign(@PathVariable String code,
                                             @Valid @RequestBody AssignDTO dto) {
 
-        return workorderService.workorderAssign(woId, dto);
+        return workorderService.workorderAssign(code, dto);
     }
 
     /**
@@ -110,11 +110,11 @@ public class WorkorderTransitionController {
      * 转派后清空当前接单人,工单退回待派单状态。
      */
     @Operation(summary = "转派工单")
-    @PutMapping("/{woId}/transfer")
-    public Result<Void> workorderTransfer(@PathVariable Long woId,
+    @PutMapping("/{code}/transfer")
+    public Result<Void> workorderTransfer(@PathVariable String code,
                                         @Valid @RequestBody RemarkDTO dto) {
 
-        return workorderService.workorderTransfer(woId, dto);
+        return workorderService.workorderTransfer(code, dto);
     }
 
     /**
@@ -122,11 +122,11 @@ public class WorkorderTransitionController {
      * 工单从 ACCEPTED 流转到 COMPLETED,等待提单人验收。
      */
     @Operation(summary = "完成工单")
-    @PutMapping("/{woId}/complete")
-    public Result<Void> workorderComplete(@PathVariable Long woId,
+    @PutMapping("/{code}/complete")
+    public Result<Void> workorderComplete(@PathVariable String code,
                                           @Valid @RequestBody WorkorderCompleteDTO dto) {
 
-        return workorderService.workorderComplete(woId, dto);
+        return workorderService.workorderComplete(code, dto);
     }
 
 }

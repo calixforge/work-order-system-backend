@@ -12,9 +12,9 @@ public enum WorkOrderStatus {
     DRAFT("草稿"),
     PENDING_REVIEW("待审核"),
     PENDING_ASSIGN("待派单"),
-    ACCEPTED("已接单"),
-    COMPLETED("已完成"),
-    CLOSED("已关闭"),
+    ACCEPTED("处理中"),
+    COMPLETED("处理完成，待验收"),
+    CLOSED("已验收"),
     CANCELED("已取消");
 
     private final String desc;

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapp
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wos.common.*;
+import com.wos.common.enums.CreatedWorkorderView;
 import com.wos.common.enums.Priority;
 import com.wos.common.enums.RoleEnum;
 import com.wos.common.enums.WorkOrderEvent;
@@ -13,6 +14,7 @@ import com.wos.domain.pojo.Department;
 import com.wos.domain.pojo.User;
 import com.wos.domain.pojo.Workorder;
 import com.wos.domain.pojo.WorkorderLog;
+import com.wos.domain.vo.WorkorderCreateVO;
 import com.wos.domain.vo.WorkorderDetailVO;
 import com.wos.domain.vo.WorkorderLogVO;
 import com.wos.domain.vo.WorkorderStatsVO;
@@ -28,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -54,6 +57,9 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     private static final Map<String, String> TRANSITIONS = new HashMap<>();
 
+    private static final DateTimeFormatter WORKORDER_CODE_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyyMMdd");
+
     static {
         // 提交
         TRANSITIONS.put("DRAFT:SUBMIT", "PENDING_REVIEW");
@@ -77,7 +83,8 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     }
 
     @Override
-    public Result<Long> workorderCreate(WorkorderCreateDTO createDTO) {
+    @Transactional
+    public Result<WorkorderCreateVO> workorderCreate(WorkorderCreateDTO createDTO) {
 
         permissionChecker.checkRole(RoleEnum.SUBMITTER);
 
@@ -90,6 +97,8 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         Workorder workorder = new Workorder();
         BeanUtils.copyProperties(createDTO, workorder);
         workorder.setCreatorId(userId);
+        LocalDateTime createdAt = LocalDateTime.now();
+        workorder.setCreateTime(createdAt);
 
         // 工单归属部门固定取提单人的部门,用于后续“本部门审核”数据权限。
         if (user.getDepartmentId() != null) {
@@ -107,9 +116,28 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
         save(workorder);
 
-        log.info("创建工单: workorderId={}, creatorId={}, departmentId={}, status={}, submit={}",
-                workorder.getId(), userId, workorder.getDepartmentId(), workorder.getStatus(), createDTO.getSubmit());
-        return Result.success(workorder.getId());
+        String code = buildWorkorderCode(workorder.getId(), createdAt);
+        boolean codeUpdated = lambdaUpdate()
+                .set(Workorder::getCode, code)
+                .eq(Workorder::getId, workorder.getId())
+                .update();
+        if (!codeUpdated) {
+            throw new BusinessException("生成工单编号失败");
+        }
+        workorder.setCode(code);
+
+        log.info("创建工单: workorderId={}, code={}, creatorId={}, departmentId={}, status={}, submit={}",
+                workorder.getId(), code, userId, workorder.getDepartmentId(), workorder.getStatus(), createDTO.getSubmit());
+        return Result.success(new WorkorderCreateVO(code));
+    }
+
+    private String buildWorkorderCode(Long id, LocalDateTime createdAt) {
+        return String.format(
+                Locale.ROOT,
+                "WO-%s-%06d",
+                createdAt.format(WORKORDER_CODE_DATE_FORMAT),
+                id
+        );
     }
 
     /**
@@ -129,13 +157,39 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
      */
     private Result<PageResult<WorkorderVO>> pageQuery(WorkorderQueryDTO dto,
                                                       Consumer<LambdaQueryChainWrapper<Workorder>> extra) {
+        return pageQuery(dto, extra, false);
+    }
+
+    private Result<PageResult<WorkorderVO>> pageQuery(WorkorderQueryDTO dto,
+                                                      Consumer<LambdaQueryChainWrapper<Workorder>> extra,
+                                                      boolean orderByUpdateTime) {
+        if (dto.getStartDate() != null
+                && dto.getEndDate() != null
+                && dto.getStartDate().isAfter(dto.getEndDate())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "开始日期不能晚于结束日期");
+        }
+
         String keyword = dto.getKeyword() == null ? null : dto.getKeyword().trim();
+        LocalDateTime startTime = dto.getStartDate() == null
+                ? null
+                : dto.getStartDate().atStartOfDay();
+        LocalDateTime endTimeExclusive = dto.getEndDate() == null
+                ? null
+                : dto.getEndDate().plusDays(1).atStartOfDay();
         Page<Workorder> page = new Page<>(dto.getPageNum(), dto.getPageSize());
         LambdaQueryChainWrapper<Workorder> query = lambdaQuery()
                 .like(keyword != null && !keyword.isBlank(), Workorder::getTitle, keyword)
                 .eq(dto.getStatus() != null, Workorder::getStatus, dto.getStatus())
                 .eq(dto.getPriority() != null, Workorder::getPriority, dto.getPriority())
-                .orderByDesc(Workorder::getCreateTime);
+                .ge(startTime != null, Workorder::getCreateTime, startTime)
+                .lt(endTimeExclusive != null, Workorder::getCreateTime, endTimeExclusive);
+
+        if (orderByUpdateTime) {
+            query.orderByDesc(Workorder::getUpdateTime)
+                    .orderByDesc(Workorder::getCreateTime);
+        } else {
+            query.orderByDesc(Workorder::getCreateTime);
+        }
 
         // 追加当前接口特有的数据范围条件。
         extra.accept(query);
@@ -167,7 +221,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         Map<Long, String> userNameMap = loadUserNameMap(userIds);
         Map<Long, String> deptNameMap = loadDepartmentNameMap(deptIds);
 
-        // 组装 VO: code/id 给前端做判断,desc/name 给前端直接展示。
+        // 组装 VO:code 作为对外工单标识,desc/name 给前端直接展示。
         List<WorkorderVO> voList = records.stream().map(w -> {
             WorkorderVO vo = new WorkorderVO();
             fillWorkorderVO(w, vo, userNameMap, deptNameMap);
@@ -236,10 +290,32 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     }
 
     @Override
-    public Result<PageResult<WorkorderVO>> workorderQueryCreated(WorkorderQueryDTO queryDTO) {
+    public Result<PageResult<WorkorderVO>> workorderQueryCreated(WorkorderCreatedQueryDTO queryDTO) {
         permissionChecker.checkRole(RoleEnum.SUBMITTER);
-        return pageQuery(queryDTO, q ->
-                q.eq(Workorder::getCreatorId, UserContext.getUserId()));
+        if (queryDTO.getView() != null && queryDTO.getStatus() != null) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "分组查询和状态筛选不能同时使用");
+        }
+
+        return pageQuery(queryDTO, q -> {
+            q.eq(Workorder::getCreatorId, UserContext.getUserId());
+            if (queryDTO.getView() == null || queryDTO.getView() == CreatedWorkorderView.ALL) {
+                return;
+            }
+            switch (queryDTO.getView()) {
+                case TODO -> q.in(Workorder::getStatus, List.of(
+                        WorkOrderStatus.DRAFT.name(),
+                        WorkOrderStatus.COMPLETED.name()));
+                case PROCESSING -> q.in(Workorder::getStatus, List.of(
+                        WorkOrderStatus.PENDING_REVIEW.name(),
+                        WorkOrderStatus.PENDING_ASSIGN.name(),
+                        WorkOrderStatus.ACCEPTED.name()));
+                case FINISHED -> q.in(Workorder::getStatus, List.of(
+                        WorkOrderStatus.CLOSED.name(),
+                        WorkOrderStatus.CANCELED.name()));
+                default -> {
+                }
+            }
+        }, true);
     }
 
     @Override
@@ -339,8 +415,14 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
             throw new BusinessException(ResultCode.BAD_REQUEST, "请填写原因");
     }
 
-    private Workorder getWorkorderOrThrow(Long woId) {
-        Workorder wo = getById(woId);
+    private Workorder getWorkorderOrThrow(String code) {
+        String normalizedCode = code == null ? null : code.trim().toUpperCase(Locale.ROOT);
+        if (normalizedCode == null || normalizedCode.isBlank()) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "工单编号不能为空");
+        }
+        Workorder wo = lambdaQuery()
+                .eq(Workorder::getCode, normalizedCode)
+                .one();
         if (wo == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "工单不存在");
         }
@@ -349,11 +431,11 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     @Transactional
-    public Result<Void> workorderSubmit(Long woId) {
+    public Result<Void> workorderSubmit(String code) {
 
         permissionChecker.checkRole(RoleEnum.SUBMITTER);
 
-        Workorder wo = getWorkorderOrThrow(woId);
+        Workorder wo = getWorkorderOrThrow(code);
 
         if (!wo.getCreatorId().equals(UserContext.getUserId())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法提交");
@@ -366,9 +448,9 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     @Transactional
-    public Result<Void> workorderWithdraw(Long woId) {
+    public Result<Void> workorderWithdraw(String code) {
         permissionChecker.checkRole(RoleEnum.SUBMITTER);
-        Workorder wo = getWorkorderOrThrow(woId);
+        Workorder wo = getWorkorderOrThrow(code);
 
         if (!wo.getCreatorId().equals(UserContext.getUserId())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法撤回");
@@ -381,10 +463,10 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     @Transactional
-    public Result<Void> workorderCancel(Long woId, RemarkDTO dto) {
+    public Result<Void> workorderCancel(String code, RemarkDTO dto) {
 
         permissionChecker.checkRole(RoleEnum.SUBMITTER);
-        Workorder wo = getWorkorderOrThrow(woId);
+        Workorder wo = getWorkorderOrThrow(code);
 
 
         if (!wo.getCreatorId().equals(UserContext.getUserId())) {
@@ -398,9 +480,9 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     @Transactional
-    public Result<Void> workorderReview(Long woId, TransitionDTO dto) {
+    public Result<Void> workorderReview(String code, TransitionDTO dto) {
         permissionChecker.checkRole(RoleEnum.REVIEWER);
-        Workorder wo = getWorkorderOrThrow(woId);
+        Workorder wo = getWorkorderOrThrow(code);
 
         User user = userService.getById(UserContext.getUserId());
         if (user == null) {
@@ -431,10 +513,10 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     @Transactional
-    public Result<Void> workorderAcceptance(Long woId, TransitionDTO dto) {
+    public Result<Void> workorderAcceptance(String code, TransitionDTO dto) {
         permissionChecker.checkRole(RoleEnum.SUBMITTER);
 
-        Workorder wo = getWorkorderOrThrow(woId);
+        Workorder wo = getWorkorderOrThrow(code);
         if (!wo.getCreatorId().equals(UserContext.getUserId())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法验收");
         }
@@ -453,7 +535,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     @Override
     @Transactional
-    public Result<Void> workorderAssign(Long woId, AssignDTO dto) {
+    public Result<Void> workorderAssign(String code, AssignDTO dto) {
         permissionChecker.checkRole(RoleEnum.DISPATCHER);
         if (dto.getAssigneeId() == null) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "接单人不能为空");
@@ -471,7 +553,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         if (!list.contains(RoleEnum.HANDLER.name())) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "该用户不是接单人,无法派单");
         }
-        Workorder wo = getWorkorderOrThrow(woId);
+        Workorder wo = getWorkorderOrThrow(code);
 
         if (dto.getPriority() != null){
             wo.setPriority(dto.getPriority());
@@ -481,15 +563,15 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         transition(wo, WorkOrderEvent.ASSIGN, null);
 
         log.info("工单派单: workorderId={}, dispatcherId={}, assigneeId={}, priority={}",
-                woId, UserContext.getUserId(), dto.getAssigneeId(), wo.getPriority());
+                wo.getId(), UserContext.getUserId(), dto.getAssigneeId(), wo.getPriority());
         return Result.success();
     }
 
     @Override
     @Transactional
-    public Result<Void> workorderTransfer(Long woId, RemarkDTO dto) {
+    public Result<Void> workorderTransfer(String code, RemarkDTO dto) {
         permissionChecker.checkRole(RoleEnum.HANDLER);
-        Workorder wo = getWorkorderOrThrow(woId);
+        Workorder wo = getWorkorderOrThrow(code);
         if (!UserContext.getUserId().equals(wo.getAssigneeId())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法转派");
         }
@@ -497,18 +579,18 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         transition(wo, WorkOrderEvent.TRANSFER, dto.getRemark());
         // 转派后清空负责人，回到待派单池等待重新派单。
         // updateById 默认跳过 null 字段，故用 lambdaUpdate().set 显式写入 null。
-        lambdaUpdate().set(Workorder::getAssigneeId, null).eq(Workorder::getId, woId).update();
+        lambdaUpdate().set(Workorder::getAssigneeId, null).eq(Workorder::getId, wo.getId()).update();
 
         log.info("工单转派后清空负责人: workorderId={}, operatorId={}, previousAssigneeId={}",
-                woId, UserContext.getUserId(), previousAssigneeId);
+                wo.getId(), UserContext.getUserId(), previousAssigneeId);
         return Result.success();
     }
 
     @Override
     @Transactional
-    public Result<Void> workorderComplete(Long woId, WorkorderCompleteDTO dto) {
+    public Result<Void> workorderComplete(String code, WorkorderCompleteDTO dto) {
         permissionChecker.checkRole(RoleEnum.HANDLER);
-        Workorder wo = getWorkorderOrThrow(woId);
+        Workorder wo = getWorkorderOrThrow(code);
         if (!UserContext.getUserId().equals(wo.getAssigneeId())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法完成");
         }
@@ -531,8 +613,23 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     }
 
     @Override
-    public Result<WorkorderDetailVO> getWorkorderDetail(Long woId) {
-        Workorder workorder = getWorkorderOrThrow(woId);
+    public Result<WorkorderDetailVO> getWorkorderDetailByCode(String code) {
+        String normalizedCode = code == null ? null : code.trim().toUpperCase(Locale.ROOT);
+        if (normalizedCode == null || normalizedCode.isBlank()) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "工单编号不能为空");
+        }
+
+        Workorder workorder = lambdaQuery()
+                .eq(Workorder::getCode, normalizedCode)
+                .one();
+        if (workorder == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "工单不存在");
+        }
+
+        return Result.success(buildWorkorderDetail(workorder));
+    }
+
+    private WorkorderDetailVO buildWorkorderDetail(Workorder workorder) {
         checkWorkorderDetailPermission(workorder);
 
         Set<Long> userIds = new HashSet<>();
@@ -547,8 +644,8 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
         WorkorderDetailVO vo = new WorkorderDetailVO();
         fillWorkorderVO(workorder, vo, loadUserNameMap(userIds), loadDepartmentNameMap(deptIds));
-        vo.setLogs(listWorkorderLogVO(woId));
-        return Result.success(vo);
+        vo.setLogs(listWorkorderLogVO(workorder.getId()));
+        return vo;
     }
 
     private void checkWorkorderDetailPermission(Workorder workorder) {
@@ -584,6 +681,7 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         List<WorkorderLog> logs = workorderLogService.lambdaQuery()
                 .eq(WorkorderLog::getWorkorderId, woId)
                 .orderByAsc(WorkorderLog::getCreateTime)
+                .orderByAsc(WorkorderLog::getId)
                 .list();
 
         Set<Long> operatorIds = logs.stream()
@@ -604,9 +702,9 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
     }
 
     @Override
-    public Result<Void> workorderUpdateDraft(Long woId, WorkorderUpdateDTO dto) {
+    public Result<Void> workorderUpdateDraft(String code, WorkorderUpdateDTO dto) {
         permissionChecker.checkRole(RoleEnum.SUBMITTER);
-        Workorder wo = getWorkorderOrThrow(woId);
+        Workorder wo = getWorkorderOrThrow(code);
 
         // 仅本人可编辑自己创建的工单。
         if (!wo.getCreatorId().equals(UserContext.getUserId())) {
@@ -622,14 +720,15 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         wo.setPriority(dto.getPriority());
         updateById(wo);
 
-        log.info("编辑草稿工单: workorderId={}, operatorId={}", woId, UserContext.getUserId());
+        log.info("编辑草稿工单: workorderId={}, code={}, operatorId={}",
+                wo.getId(), wo.getCode(), UserContext.getUserId());
         return Result.success();
     }
 
     @Override
-    public Result<Void> workorderDeleteDraft(Long woId) {
+    public Result<Void> workorderDeleteDraft(String code) {
         permissionChecker.checkRole(RoleEnum.SUBMITTER);
-        Workorder wo = getWorkorderOrThrow(woId);
+        Workorder wo = getWorkorderOrThrow(code);
 
         // 仅本人可删除自己创建的工单。
         if (!wo.getCreatorId().equals(UserContext.getUserId())) {
@@ -641,9 +740,10 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         }
 
         // 执行逻辑删
-        removeById(woId);
+        removeById(wo.getId());
 
-        log.info("删除草稿工单: workorderId={}, operatorId={}", woId, UserContext.getUserId());
+        log.info("删除草稿工单: workorderId={}, code={}, operatorId={}",
+                wo.getId(), wo.getCode(), UserContext.getUserId());
         return Result.success();
     }
 

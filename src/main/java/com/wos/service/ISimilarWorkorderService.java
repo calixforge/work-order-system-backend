@@ -16,7 +16,7 @@ public interface ISimilarWorkorderService {
      * 点 ID = 工单 id,重复调用为 upsert 覆盖,天然幂等;
      * 非 CLOSED 状态直接跳过,调用方无需判断验收结果。
      */
-    void indexWorkorder(Long woId);
+    void indexWorkorder(String code);
 
     /**
      * 按关键词检索相似历史工单(纯向量检索,不调用大模型)。

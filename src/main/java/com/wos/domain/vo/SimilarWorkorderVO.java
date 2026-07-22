@@ -7,8 +7,8 @@ import lombok.Data;
 @Schema(description = "相似历史工单")
 public class SimilarWorkorderVO {
 
-    @Schema(description = "工单ID")
-    private Long workorderId;
+    @Schema(description = "对外工单编号")
+    private String workorderCode;
 
     @Schema(description = "标题")
     private String title;

@@ -5,6 +5,7 @@ import com.wos.common.PageResult;
 import com.wos.common.Result;
 import com.wos.domain.dto.*;
 import com.wos.domain.pojo.Workorder;
+import com.wos.domain.vo.WorkorderCreateVO;
 import com.wos.domain.vo.WorkorderDetailVO;
 import com.wos.domain.vo.WorkorderStatsVO;
 import com.wos.domain.vo.WorkorderVO;
@@ -15,9 +16,9 @@ import jakarta.validation.Valid;
  */
 public interface IWorkorderService extends IService<Workorder> {
 
-    Result<Long> workorderCreate(WorkorderCreateDTO workorderCreateDTO);
+    Result<WorkorderCreateVO> workorderCreate(WorkorderCreateDTO workorderCreateDTO);
 
-    Result<PageResult<WorkorderVO>> workorderQueryCreated(@Valid WorkorderQueryDTO queryDTO);
+    Result<PageResult<WorkorderVO>> workorderQueryCreated(@Valid WorkorderCreatedQueryDTO queryDTO);
 
     Result<PageResult<WorkorderVO>> workorderQueryAssigned(@Valid WorkorderQueryDTO queryDTO);
 
@@ -27,27 +28,27 @@ public interface IWorkorderService extends IService<Workorder> {
 
     Result<WorkorderStatsVO> workorderStats();
 
-    Result<Void> workorderSubmit(Long woId);
+    Result<Void> workorderSubmit(String code);
 
-    Result<Void> workorderWithdraw(Long woId);
+    Result<Void> workorderWithdraw(String code);
 
-    Result<Void> workorderCancel(Long woId, RemarkDTO dto);
+    Result<Void> workorderCancel(String code, RemarkDTO dto);
 
-    Result<Void> workorderReview(Long woId, TransitionDTO dto);
+    Result<Void> workorderReview(String code, TransitionDTO dto);
 
-    Result<Void> workorderAcceptance(Long woId, @Valid TransitionDTO dto);
+    Result<Void> workorderAcceptance(String code, @Valid TransitionDTO dto);
 
-    Result<Void> workorderAssign(Long woId, @Valid AssignDTO dto);
+    Result<Void> workorderAssign(String code, @Valid AssignDTO dto);
 
-    Result<Void> workorderTransfer(Long woId, @Valid RemarkDTO dto);
+    Result<Void> workorderTransfer(String code, @Valid RemarkDTO dto);
 
-    Result<Void> workorderComplete(Long woId, @Valid WorkorderCompleteDTO dto);
+    Result<Void> workorderComplete(String code, @Valid WorkorderCompleteDTO dto);
 
     Result<PageResult<WorkorderVO>> workorderList(@Valid WorkorderQueryDTO queryDTO);
 
-    Result<WorkorderDetailVO> getWorkorderDetail(Long woId);
+    Result<WorkorderDetailVO> getWorkorderDetailByCode(String code);
 
-    Result<Void> workorderUpdateDraft(Long woId, @Valid WorkorderUpdateDTO dto);
+    Result<Void> workorderUpdateDraft(String code, @Valid WorkorderUpdateDTO dto);
 
-    Result<Void> workorderDeleteDraft(Long woId);
+    Result<Void> workorderDeleteDraft(String code);
 }

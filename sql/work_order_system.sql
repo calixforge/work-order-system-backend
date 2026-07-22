@@ -75,6 +75,7 @@ CREATE TABLE `user_role` (
 DROP TABLE IF EXISTS `workorder`;
 CREATE TABLE `workorder` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `code` VARCHAR(32) DEFAULT NULL COMMENT '对外工单编号，如 WO-20260722-000123',
   `title` VARCHAR(100) NOT NULL COMMENT '标题',
   `description` VARCHAR(1000) DEFAULT NULL COMMENT '描述',
   `resolution_summary` VARCHAR(1000) DEFAULT NULL COMMENT '处理结果/解决说明(完成工单时填写)',
@@ -88,6 +89,7 @@ CREATE TABLE `workorder` (
   `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `is_del` TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除:0否 1是',
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_workorder_code` (`code`),
   KEY `idx_assignee` (`assignee_id`) COMMENT '派给我的工单',
   KEY `idx_creator` (`creator_id`) COMMENT '我发起的工单',
   KEY `idx_dept_status` (`department_id`, `status`) COMMENT '本部门按状态查'
