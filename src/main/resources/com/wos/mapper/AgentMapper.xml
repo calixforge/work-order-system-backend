@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wos.mapper.AgentMapper">
+    <select id="queryWorkorders" resultType="com.wos.domain.vo.WorkorderVO">
+        select
+            w.code,
+            w.title,
+            w.status,
+            w.priority,
+            creator.real_name as creatorName,
+            assignee.real_name as assigneeName,
+            department.name as departmentName,
+            w.create_time as createTime,
+            w.update_time as updateTime,
+            w.complete_time as completeTime
+        from workorder w
+        left join `user` creator on creator.id = w.creator_id
+        left join `user` assignee on assignee.id = w.assignee_id
+        left join department on department.id = w.department_id and department.is_del = 0
+        where w.is_del = 0
+
+        <choose>
+            <when test="query.relation == @com.wos.common.enums.AgentWorkorderRelation@CREATED">
+                and w.creator_id = #{userId}
+            </when>
+            <when test="query.relation == @com.wos.common.enums.AgentWorkorderRelation@ASSIGNED">
+                and w.assignee_id = #{userId}
+            </when>
+            <when test="query.relation == @com.wos.common.enums.AgentWorkorderRelation@REVIEW">
+                and w.department_id = #{departmentId}
+            </when>
+        </choose>
+
+        <if test="query.keyword != null and query.keyword != ''">
+            and w.title like concat('%', #{query.keyword}, '%')
+        </if>
+        <if test="query.statuses != null and !query.statuses.isEmpty()">
+            and w.status in
+            <foreach collection="query.statuses" item="status" open="(" separator="," close=")">
+                #{status}
+            </foreach>
+        </if>
+        <if test="query.priorities != null and !query.priorities.isEmpty()">
+            and w.priority in
+            <foreach collection="query.priorities" item="priority" open="(" separator="," close=")">
+                #{priority}
+            </foreach>
+        </if>
+        <if test="query.startTime != null">
+            and w.create_time &gt;= #{query.startTime}
+        </if>
+        <if test="query.endTimeExclusive != null">
+            and w.create_time &lt; #{query.endTimeExclusive}
+        </if>
+
+        <choose>
+            <when test="query.sortBy == @com.wos.common.enums.AgentWorkorderSortBy@UPDATE_TIME
+                    and query.sortOrder == @com.wos.common.enums.AgentSortOrder@ASC">
+                order by w.update_time asc, w.create_time asc, w.code asc
+            </when>
+            <when test="query.sortBy == @com.wos.common.enums.AgentWorkorderSortBy@UPDATE_TIME">
+                order by w.update_time desc, w.create_time desc, w.code desc
+            </when>
+            <when test="query.sortOrder == @com.wos.common.enums.AgentSortOrder@ASC">
+                order by w.create_time asc, w.code asc
+            </when>
+            <otherwise>
+                order by w.create_time desc, w.code desc
+            </otherwise>
+        </choose>
+    </select>
+</mapper>
