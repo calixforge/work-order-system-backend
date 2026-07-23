@@ -665,7 +665,8 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         if (codes.contains(RoleEnum.HANDLER.name()) && userId.equals(workorder.getAssigneeId())) {
             return;
         }
-        if (codes.contains(RoleEnum.REVIEWER.name())) {
+        if (codes.contains(RoleEnum.REVIEWER.name())
+                && WorkOrderStatus.PENDING_REVIEW.name().equals(workorder.getStatus())) {
             User user = userService.getById(userId);
             if (user != null
                     && user.getDepartmentId() != null

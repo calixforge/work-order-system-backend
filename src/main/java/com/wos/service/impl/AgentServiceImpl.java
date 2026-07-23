@@ -12,11 +12,13 @@ import com.wos.common.enums.WorkOrderStatus;
 import com.wos.domain.dto.AgentWorkorderQueryDTO;
 import com.wos.domain.pojo.User;
 import com.wos.domain.vo.AgentCurrentUserVO;
+import com.wos.domain.vo.WorkorderDetailVO;
 import com.wos.domain.vo.WorkorderVO;
 import com.wos.exception.BusinessException;
 import com.wos.mapper.AgentMapper;
 import com.wos.service.IAgentService;
 import com.wos.service.IUserService;
+import com.wos.service.IWorkorderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +33,8 @@ public class AgentServiceImpl implements IAgentService {
     private final PermissionChecker permissionChecker;
 
     private final IUserService userService;
+
+    private final IWorkorderService workorderService;
 
     @Override
     public Result<AgentCurrentUserVO> currentUser() {
@@ -94,6 +98,11 @@ public class AgentServiceImpl implements IAgentService {
         );
         resultPage.getRecords().forEach(this::fillWorkorderDescription);
         return Result.success(PageResult.of(resultPage));
+    }
+
+    @Override
+    public Result<WorkorderDetailVO> getWorkorderDetail(String code) {
+        return workorderService.getWorkorderDetailByCode(code);
     }
 
     private void applyFixedStatus(AgentWorkorderQueryDTO queryDTO, WorkOrderStatus fixedStatus) {
