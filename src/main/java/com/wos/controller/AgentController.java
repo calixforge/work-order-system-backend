@@ -24,7 +24,7 @@ public class AgentController {
 
     private final IAgentService agentService;
 
-    @Operation(summary = "获取当前登录用户 ID")
+    @Operation(summary = "获取当前登录用户身份与角色")
     @GetMapping("/auth/me")
     public Result<AgentCurrentUserVO> currentUser() {
         return agentService.currentUser();

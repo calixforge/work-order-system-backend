@@ -17,6 +17,7 @@ import com.wos.domain.vo.WorkorderVO;
 import com.wos.exception.BusinessException;
 import com.wos.mapper.AgentMapper;
 import com.wos.service.IAgentService;
+import com.wos.service.IRoleService;
 import com.wos.service.IUserService;
 import com.wos.service.IWorkorderService;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,8 @@ public class AgentServiceImpl implements IAgentService {
 
     private final IUserService userService;
 
+    private final IRoleService roleService;
+
     private final IWorkorderService workorderService;
 
     @Override
@@ -42,7 +45,10 @@ public class AgentServiceImpl implements IAgentService {
         if (userId == null) {
             throw new BusinessException(ResultCode.UNAUTHORIZED);
         }
-        return Result.success(new AgentCurrentUserVO(userId));
+        return Result.success(new AgentCurrentUserVO(
+                userId,
+                roleService.selectRoleVOByUserId(userId)
+        ));
     }
 
     @Override
