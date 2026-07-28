@@ -3,6 +3,8 @@
 使用 Docker Compose 一键编排 nginx + app + MySQL + Redis。Nginx 提供前端静态页面，将 `/api` 转发到 Java 后端，并将 `/agent-api` 转发到独立部署的 Agent。
 
 > 前端为独立仓库:<https://github.com/calixforge/work-order-system-web>
+>
+> Agent 为独立仓库:<https://github.com/calixforge/work-order-system-agent>
 
 ## 环境要求
 

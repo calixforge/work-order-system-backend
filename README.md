@@ -5,6 +5,8 @@
 项目模拟企业内部 IT / OA 支持流程，重点展示完整业务闭环、多角色协同、权限控制和操作留痕。
 
 > 前端仓库：[work-order-system-web](https://github.com/calixforge/work-order-system-web)
+>
+> Agent 仓库：[work-order-system-agent](https://github.com/calixforge/work-order-system-agent)
 
 ## 功能亮点
 
