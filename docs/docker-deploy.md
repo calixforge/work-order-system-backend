@@ -1,6 +1,6 @@
 # Docker 部署指南
 
-使用 Docker Compose 一键编排 nginx + app + MySQL + Redis + Qdrant:Nginx 发前端静态页面并把 `/api` 反代到后端,后端连 MySQL / Redis / Qdrant(向量库),整套从浏览器一个入口访问。
+使用 Docker Compose 一键编排 nginx + app + MySQL + Redis。Nginx 提供前端静态页面，将 `/api` 转发到 Java 后端，并将 `/agent-api` 转发到独立部署的 Agent。
 
 > 前端为独立仓库:<https://github.com/calixforge/work-order-system-web>
 
@@ -58,37 +58,30 @@ deploy/
 MYSQL_PASSWORD=你的MySQL密码
 REDIS_PASSWORD=你的Redis密码
 JWT_SECRET=一段长随机串(至少 32 位)
-
-# AI / RAG
-AI_BASE_URL=chat 模型的 OpenAI 兼容端点
-AI_API_KEY=chat 模型的 API Key
-AI_CHAT_MODEL=chat 模型名
-AI_EMBEDDING_API_KEY=SiliconFlow 的 API Key(embedding 用 BAAI/bge-m3)
 ```
 
 ## 5. 启动
 
 ```bash
+docker network inspect work-order-system-network >/dev/null 2>&1 || docker network create work-order-system-network
 docker compose up -d --build
 ```
 
-首次启动会:构建 app 镜像 → 启动 MySQL(自动建库并按 `01-schema → 02-data` 顺序执行 `sql/` 初始化脚本)→ 启动 Redis → 启动 Qdrant → 等 MySQL / Qdrant 健康检查通过 → 启动 app(自动导入 `kb/` 知识库文档)→ 启动 nginx。
+首次启动会:构建 app 镜像 → 启动 MySQL(自动建库并按 `01-schema → 02-data` 顺序执行 `sql/` 初始化脚本)→ 启动 Redis → 等 MySQL 健康检查通过 → 启动 app → 启动 nginx。
 
 ## 6. 验证
 
 ```bash
-docker compose ps            # 五个容器:nginx / app / mysql / redis / qdrant(mysql/qdrant 显示 healthy)
-docker compose logs -f app   # 查看 app 启动日志(可看到知识库"切出 N 块"的导入日志)
+docker compose ps            # 四个容器:nginx / app / mysql / redis(mysql 显示 healthy)
+docker compose logs -f app   # 查看 app 启动日志
 ```
 
 - 完整系统:浏览器访问 `http://<服务器IP>`(80 端口),用 `admin / admin123` 登录。
 - 后端接口文档(调试):`http://<服务器IP>:8080/doc.html`。
-- Qdrant 控制台(调试):`http://<服务器IP>:6333/dashboard`,可查看 `kb` collection 与向量点。
 
 ## 说明
 
-- Nginx 发前端 `dist`(SPA 路由回退),并把 `/api` 反代到 `app:8080`(去掉 `/api` 前缀,等价于开发期 vite proxy)。
-- 容器内 app 通过服务名连接:`mysql:3306`、`redis:6379`、`qdrant:6334`(gRPC 口;见 `application-docker.yml`,由环境变量 `SPRING_PROFILES_ACTIVE=docker` 激活,覆盖默认的 local profile)。
+- Nginx 发前端 `dist`(SPA 路由回退),把 `/api` 反代到 `app:8080`,把 `/agent-api` 反代到共享网络中的 `agent:8000`。
+- 容器内 app 通过服务名连接:`mysql:3306`、`redis:6379`(见 `application-docker.yml`,由环境变量 `SPRING_PROFILES_ACTIVE=docker` 激活,覆盖默认的 local profile)。
 - MySQL 数据用命名卷 `mysql-data` 持久化;初始化脚本仅在数据卷为空(首次启动)时执行,重启不会重复初始化。
-- Qdrant 向量数据用命名卷 `qdrant-data` 持久化;app 会等待 Qdrant 健康检查通过后再启动,避免向量库 Bean 初始化和 collection 创建时撞上 Qdrant 未就绪。
-- 知识库文档在 app 启动时自动导入;导入失败仅记录日志、不阻断工单主业务启动(智能问答降级)。
+- Agent 需要单独部署，并以 `agent` 网络别名加入外部网络 `work-order-system-network`。

@@ -5,13 +5,11 @@ import com.wos.domain.dto.AssignDTO;
 import com.wos.domain.dto.RemarkDTO;
 import com.wos.domain.dto.TransitionDTO;
 import com.wos.domain.dto.WorkorderCompleteDTO;
-import com.wos.service.ISimilarWorkorderService;
 import com.wos.service.IWorkorderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -19,12 +17,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/workorder")
 @RestController
 @RequiredArgsConstructor
-@Slf4j
 public class WorkorderTransitionController {
 
     private final IWorkorderService workorderService;
-
-    private final ISimilarWorkorderService similarWorkorderService;
 
     /**
      * 提单人提交草稿工单。
@@ -82,15 +77,7 @@ public class WorkorderTransitionController {
     public Result<Void> workorderAcceptance(@PathVariable String code,
                                         @Valid @RequestBody TransitionDTO dto) {
 
-        Result<Void> result = workorderService.workorderAcceptance(code, dto);
-        // 事务已提交后再索引;service 内部只对 CLOSED 状态入库(验收不通过自动跳过)。
-        // 索引失败仅记日志降级,不影响验收主流程。
-        try {
-            similarWorkorderService.indexWorkorder(code);
-        } catch (Exception e) {
-            log.error("工单 {} 相似库索引失败(已降级,不影响验收)", code, e);
-        }
-        return result;
+        return workorderService.workorderAcceptance(code, dto);
     }
 
     /**

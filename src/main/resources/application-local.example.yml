@@ -18,26 +18,6 @@ spring:
       port: 6379
       password: your_redis_password
       database: 0
-  ai:
-    openai:
-      # Chat 模型:填写任意 OpenAI-compatible API 的地址和密钥
-      base-url: https://your-chat-provider.example.com
-      api-key: your_chat_api_key
-      chat:
-        options:
-          model: your_chat_model
-          temperature: 0.1
-      # Embedding 模型:示例使用 SiliconFlow 的 BAAI/bge-m3
-      embedding:
-        base-url: https://api.siliconflow.cn
-        api-key: your_embedding_api_key
-        options:
-          model: BAAI/bge-m3
-    vectorstore:
-      qdrant:
-        host: localhost
-        port: 6334
-        use-tls: false
 
 logging:
   pattern:

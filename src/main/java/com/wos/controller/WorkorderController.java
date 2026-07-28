@@ -3,17 +3,14 @@ package com.wos.controller;
 
 import com.wos.common.PageResult;
 import com.wos.common.Result;
-import com.wos.domain.dto.SimilarWorkorderQueryDTO;
 import com.wos.domain.dto.WorkorderCreateDTO;
 import com.wos.domain.dto.WorkorderCreatedQueryDTO;
 import com.wos.domain.dto.WorkorderQueryDTO;
 import com.wos.domain.dto.WorkorderUpdateDTO;
-import com.wos.domain.vo.SimilarWorkorderVO;
 import com.wos.domain.vo.WorkorderCreateVO;
 import com.wos.domain.vo.WorkorderDetailVO;
 import com.wos.domain.vo.WorkorderStatsVO;
 import com.wos.domain.vo.WorkorderVO;
-import com.wos.service.ISimilarWorkorderService;
 import com.wos.service.IWorkorderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,9 +19,6 @@ import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-
 @Tag(name = "工单管理")
 @RequestMapping("/workorder")
 @RestController
@@ -32,19 +26,6 @@ import java.util.List;
 public class WorkorderController {
 
     private final IWorkorderService workorderService;
-
-    private final ISimilarWorkorderService similarWorkorderService;
-
-    /**
-     * 按关键词搜索相似历史工单(已验收关闭的工单,附当时的解决方案)。
-     * 登录即可,提单前自查或处理时参考均可用;纯向量检索,不产生大模型调用。
-     */
-    @Operation(summary = "搜索相似历史工单")
-    @PostMapping("/similar")
-    public Result<List<SimilarWorkorderVO>> searchSimilar(@Valid @RequestBody SimilarWorkorderQueryDTO dto) {
-
-        return similarWorkorderService.searchSimilar(dto);
-    }
 
     /**
      * 创建工单。

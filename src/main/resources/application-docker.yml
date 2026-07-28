@@ -16,25 +16,6 @@ spring:
       port: 6379
       password: ${REDIS_PASSWORD}
       database: 0
-  ai:
-    openai:
-      base-url: ${AI_BASE_URL}                 # chat 走的 OpenAI 兼容端点(公共层,speech 等未用模块也靠它兜底)
-      api-key: ${AI_API_KEY}
-      chat:
-        options:
-          model: ${AI_CHAT_MODEL}
-          temperature: 0.1
-      embedding:                               # embedding 单独指向 SiliconFlow bge-m3
-        base-url: https://api.siliconflow.cn
-        api-key: ${AI_EMBEDDING_API_KEY}
-        options:
-          model: BAAI/bge-m3
-    vectorstore:
-      qdrant:
-        host: qdrant                           # compose 服务名
-        port: 6334                             # gRPC 口
-        use-tls: false
-
 logging:
   pattern:
     dateformat: yyyy-MM-dd HH:mm:ss.SSS
