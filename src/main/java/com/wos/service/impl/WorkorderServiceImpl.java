@@ -1,5 +1,7 @@
 package com.wos.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -59,6 +61,8 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
 
     private static final DateTimeFormatter WORKORDER_CODE_DATE_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMdd");
+
+    private static final String STATUS_CHANGED_MESSAGE = "工单状态已变更，请刷新后重试";
 
     static {
         // 提交
@@ -389,12 +393,30 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
      * 3. 更新工单状态;
      * 4. 记录一条工单流转日志。
      */
-    private void transition(Workorder wo, WorkOrderEvent event, String remark){
+    private void transition(Workorder wo, WorkOrderEvent event, String remark) {
+        transition(wo, event, remark, updateWrapper -> {});
+    }
+
+    private void transition(Workorder wo,
+                            WorkOrderEvent event,
+                            String remark,
+                            Consumer<LambdaUpdateWrapper<Workorder>> additionalUpdates) {
         String from = wo.getStatus();
         String to = TRANSITIONS.get(from + ":" + event.name());
         if (to == null) throw new BusinessException(ResultCode.CONFLICT, "当前状态不能执行该操作");
 
-        wo.setStatus(to);
+        LambdaUpdateWrapper<Workorder> updateWrapper = new LambdaUpdateWrapper<Workorder>()
+                .set(Workorder::getStatus, to);
+        additionalUpdates.accept(updateWrapper);
+        updateWrapper
+                .eq(Workorder::getId, wo.getId())
+                .eq(Workorder::getStatus, from);
+
+        int updatedRows = baseMapper.update(null, updateWrapper);
+        if (updatedRows != 1) {
+            throw new BusinessException(ResultCode.CONFLICT, STATUS_CHANGED_MESSAGE);
+        }
+
         WorkorderLog workorderLog = new WorkorderLog();
         workorderLog.setWorkorderId(wo.getId());
         workorderLog.setOperatorId(UserContext.getUserId());
@@ -403,9 +425,11 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         workorderLog.setEvent(event.name());
         workorderLog.setRemark(remark);
 
-        //更新工单并保存日志
-        updateById(wo);
-        workorderLogService.save(workorderLog);
+        if (!workorderLogService.save(workorderLog)) {
+            throw new BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "记录工单流转日志失败");
+        }
+        wo.setStatus(to);
+
         log.info("工单状态流转: workorderId={}, operatorId={}, event={}, fromStatus={}, toStatus={}, remarkPresent={}",
                 wo.getId(), UserContext.getUserId(), event.name(), from, to, remark != null && !remark.isBlank());
     }
@@ -420,9 +444,8 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         if (normalizedCode == null || normalizedCode.isBlank()) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "工单编号不能为空");
         }
-        Workorder wo = lambdaQuery()
-                .eq(Workorder::getCode, normalizedCode)
-                .one();
+        Workorder wo = baseMapper.selectOne(new LambdaQueryWrapper<Workorder>()
+                .eq(Workorder::getCode, normalizedCode));
         if (wo == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "工单不存在");
         }
@@ -555,15 +578,13 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         }
         Workorder wo = getWorkorderOrThrow(code);
 
-        if (dto.getPriority() != null){
-            wo.setPriority(dto.getPriority());
-        }
-        wo.setAssigneeId(dto.getAssigneeId());
-
-        transition(wo, WorkOrderEvent.ASSIGN, null);
+        transition(wo, WorkOrderEvent.ASSIGN, null, updateWrapper -> updateWrapper
+                .set(Workorder::getAssigneeId, dto.getAssigneeId())
+                .set(dto.getPriority() != null, Workorder::getPriority, dto.getPriority()));
 
         log.info("工单派单: workorderId={}, dispatcherId={}, assigneeId={}, priority={}",
-                wo.getId(), UserContext.getUserId(), dto.getAssigneeId(), wo.getPriority());
+                wo.getId(), UserContext.getUserId(), dto.getAssigneeId(),
+                dto.getPriority() == null ? wo.getPriority() : dto.getPriority());
         return Result.success();
     }
 
@@ -576,10 +597,9 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
             throw new BusinessException(ResultCode.FORBIDDEN, "当前工单不属于您，无法转派");
         }
         Long previousAssigneeId = wo.getAssigneeId();
-        transition(wo, WorkOrderEvent.TRANSFER, dto.getRemark());
-        // 转派后清空负责人，回到待派单池等待重新派单。
-        // updateById 默认跳过 null 字段，故用 lambdaUpdate().set 显式写入 null。
-        lambdaUpdate().set(Workorder::getAssigneeId, null).eq(Workorder::getId, wo.getId()).update();
+        // 状态变更与清空负责人必须在同一条条件更新中完成。
+        transition(wo, WorkOrderEvent.TRANSFER, dto.getRemark(), updateWrapper ->
+                updateWrapper.set(Workorder::getAssigneeId, null));
 
         log.info("工单转派后清空负责人: workorderId={}, operatorId={}, previousAssigneeId={}",
                 wo.getId(), UserContext.getUserId(), previousAssigneeId);
@@ -598,9 +618,10 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
         if (resolutionSummary.isBlank()) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "处理结果不能为空");
         }
-        wo.setCompleteTime(LocalDateTime.now());
-        wo.setResolutionSummary(resolutionSummary);
-        transition(wo, WorkOrderEvent.COMPLETE, null);
+        LocalDateTime completeTime = LocalDateTime.now();
+        transition(wo, WorkOrderEvent.COMPLETE, null, updateWrapper -> updateWrapper
+                .set(Workorder::getCompleteTime, completeTime)
+                .set(Workorder::getResolutionSummary, resolutionSummary));
 
         return Result.success();
     }
@@ -716,10 +737,16 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
             throw new BusinessException(ResultCode.CONFLICT, "仅草稿状态可编辑");
         }
 
-        wo.setTitle(dto.getTitle());
-        wo.setDescription(dto.getDescription());
-        wo.setPriority(dto.getPriority());
-        updateById(wo);
+        int updatedRows = baseMapper.update(null, new LambdaUpdateWrapper<Workorder>()
+                .set(Workorder::getTitle, dto.getTitle())
+                .set(Workorder::getDescription, dto.getDescription())
+                .set(Workorder::getPriority, dto.getPriority())
+                .eq(Workorder::getId, wo.getId())
+                .eq(Workorder::getCreatorId, UserContext.getUserId())
+                .eq(Workorder::getStatus, WorkOrderStatus.DRAFT.name()));
+        if (updatedRows != 1) {
+            throw new BusinessException(ResultCode.CONFLICT, STATUS_CHANGED_MESSAGE);
+        }
 
         log.info("编辑草稿工单: workorderId={}, code={}, operatorId={}",
                 wo.getId(), wo.getCode(), UserContext.getUserId());
@@ -740,8 +767,13 @@ public class WorkorderServiceImpl extends ServiceImpl<WorkorderMapper, Workorder
             throw new BusinessException(ResultCode.CONFLICT, "仅草稿状态可删除");
         }
 
-        // 执行逻辑删
-        removeById(wo.getId());
+        int deletedRows = baseMapper.delete(new LambdaQueryWrapper<Workorder>()
+                .eq(Workorder::getId, wo.getId())
+                .eq(Workorder::getCreatorId, UserContext.getUserId())
+                .eq(Workorder::getStatus, WorkOrderStatus.DRAFT.name()));
+        if (deletedRows != 1) {
+            throw new BusinessException(ResultCode.CONFLICT, STATUS_CHANGED_MESSAGE);
+        }
 
         log.info("删除草稿工单: workorderId={}, code={}, operatorId={}",
                 wo.getId(), wo.getCode(), UserContext.getUserId());
